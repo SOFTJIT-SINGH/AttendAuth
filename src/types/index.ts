@@ -4,6 +4,8 @@ export interface UserProfile {
   id: string;
   email: string;
   role: UserRole;
+  is_verified: boolean;
+  phone: string | null;
   device_id: string | null;
   face_ref_blob: string | null; // Base64 encrypted
 }
