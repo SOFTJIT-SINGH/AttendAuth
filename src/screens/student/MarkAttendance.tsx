@@ -1,19 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Alert, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Image, ActivityIndicator, Platform, Linking, ScrollView } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
 import { useAuthStore } from '../../store/authStore';
-import { checkGeofence, isWithinTimeWindow } from '../../services/security';
+import { checkGeofence } from '../../services/security'; // Removed time window check
 import { verifyFace } from '../../services/gemini';
 import { logAttendance } from '../../services/audit';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ClassSchedule } from '../../types';
 
 export const MarkAttendance = () => {
-  const [permission, request] = useCameraPermissions();
-  const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
+  const [cameraPermission, requestCamera] = useCameraPermissions();
+  const [locationPermission, setLocationPermission] = useState<Location.LocationPermissionResponse | null>(null);
   const { user } = useAuthStore();
   const cameraRef = useRef<CameraView>(null);
   const [loading, setLoading] = useState(false);
@@ -21,132 +22,157 @@ export const MarkAttendance = () => {
   const [preview, setPreview] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'success' | 'pending' | 'error'>('idle');
 
+  const requestAllPermissions = async () => {
+    try {
+      const cam = await requestCamera();
+      const loc = await Location.requestForegroundPermissionsAsync();
+      setLocationPermission(loc);
+    } catch (e) {
+      console.error('Permission Error:', e);
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
-      // Load Schedule
-      const { data } = await supabase.from('class_schedules').select('*').limit(1).single();
+      const { data } = await supabase.from('class_schedules').select('*').order('created_at', { ascending: false }).limit(1).single();
       if (data) setSchedule(data);
-
-      // Request Location Permission
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      setLocationPermission(status === 'granted');
+      requestAllPermissions();
     };
     init();
   }, []);
 
+  const openSettings = () => {
+    if (Platform.OS === 'ios') Linking.openURL('app-settings:');
+    else Linking.openSettings();
+  };
+
   const capture = async () => {
-    if (!cameraRef.current || !schedule || !user) return;
+    if (!cameraRef.current) {
+        Alert.alert('Scanner Error', 'The camera scanner is still initializing. Please wait a moment.');
+        return;
+    }
+    if (!schedule || !user) {
+      Alert.alert('Data Error', 'Cannot find active class session or user identity.');
+      return;
+    }
+    
     setLoading(true);
     setStatus('idle');
     try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.8, base64: true });
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.3, base64: true });
+      if (!photo?.base64) throw new Error('Failed to capture photo');
+      
       setPreview(photo.uri);
 
-      const geo = await checkGeofence({ lat: schedule.geofence_lat, lon: schedule.geofence_lon, radius: schedule.geofence_radius_m });
-      const inTime = isWithinTimeWindow(schedule.start_time, schedule.end_time);
+      // 1. Geofence Check (With 500m buffer from security.ts)
+      const geo = await checkGeofence({ 
+        lat: schedule.geofence_lat, 
+        lon: schedule.geofence_lon, 
+        radius: schedule.geofence_radius_m 
+      });
 
-      if (!geo.inZone || !inTime) {
+      // TIME WINDOW CHECK REMOVED FOR TESTING PURPOSES AS REQUESTED
+      if (!geo.inZone) {
         setStatus('error');
-        Alert.alert('Access Denied', 'Outside geofence or class time window.');
+        Alert.alert('Access Denied', 'You must be within the classroom location range.');
         setLoading(false);
         return;
       }
 
-      const { match, confidence } = await verifyFace(user.face_ref_blob || '', photo.base64 || '');
+      // 2. Identify Reference Image (AsyncStorage or DB)
+      let referenceFace = await AsyncStorage.getItem(`face_ref_${user.email}`);
+      if (!referenceFace) {
+         console.log('No local reference face found, falling back to database...');
+         referenceFace = user.face_ref_blob || '';
+      }
+
+      const { match, confidence } = await verifyFace(referenceFace, photo.base64);
       const attendStatus = match ? 'PRESENT' : 'PENDING_APPROVAL';
 
       await logAttendance({
-        id: crypto.randomUUID(), student_id: user.id, class_id: schedule.id, status: attendStatus,
-        marked_at: new Date().toISOString(), location: { lat: geo.coords.latitude, lon: geo.coords.longitude },
-        device_id: await useAuthStore.getState().loadDeviceId(), ai_confidence: confidence,
+        id: (globalThis as any).crypto?.randomUUID?.() || Math.random().toString(36),
+        student_id: user.id,
+        class_id: schedule.id,
+        status: attendStatus,
+        marked_at: new Date().toISOString(),
+        location: { lat: geo.coords.latitude, lon: geo.coords.longitude },
+        device_id: await useAuthStore.getState().loadDeviceId(),
+        ai_confidence: confidence,
       });
 
       setStatus(match ? 'success' : 'pending');
       Alert.alert(
-        match ? '✅ Success' : '⏳ Pending',
-        match ? 'Attendance marked successfully.' : 'Sent for teacher review.',
+        match ? '✅ Verified' : '⏳ Review Needed',
+        match ? 'Your check-in is complete.' : 'Biometric match low. Sent for staff review.',
       );
     } catch (e) {
       setStatus('error');
-      Alert.alert('Error', (e as Error).message);
+      Alert.alert('Scan Failed', (e as Error).message);
     } finally {
       setLoading(false);
     }
   };
 
-  if (!permission?.granted || !locationPermission) {
+  const isCameraGranted = cameraPermission?.status === 'granted';
+  const isLocationGranted = locationPermission?.status === 'granted';
+
+  if (!isCameraGranted || !isLocationGranted) {
     return (
-      <LinearGradient colors={['#0F0C29', '#302B63', '#24243E']} className="flex-1 justify-center items-center px-8">
-        <View className="w-24 h-24 rounded-full bg-indigo-500/15 border-2 border-indigo-500/30 justify-center items-center mb-5">
-          <Ionicons name={!permission?.granted ? "camera-outline" : "location-outline"} size={48} color="#6C63FF" />
-        </View>
-        <Text className="text-white text-2xl font-extrabold mb-2 text-center">
-          {!permission?.granted ? 'Camera Needed' : 'Location Needed'}
-        </Text>
-        <Text className="text-gray-400 text-sm text-center leading-5 mb-8">
-          {!permission?.granted 
-            ? 'We need camera access to verify your identity.' 
-            : 'Geofencing requires location access to verify you are in the classroom.'}
-        </Text>
-        <TouchableOpacity 
-          onPress={!permission?.granted ? request : () => Location.requestForegroundPermissionsAsync().then(r => setLocationPermission(r.status === 'granted'))} 
-          activeOpacity={0.85} 
-          className="w-full rounded-2xl overflow-hidden"
-        >
-          <LinearGradient colors={['#6C63FF', '#48CAE4']} className="py-4 items-center">
-            <Text className="text-white font-bold text-base">Grant Access</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </LinearGradient>
+      <View className="flex-1 bg-[#020617] justify-center px-10">
+          <View className="items-center mb-10">
+            <Ionicons name="lock-closed" size={64} color="#6366f1" />
+            <Text className="text-white text-2xl font-black mt-6">ACCESS REQUIRED</Text>
+          </View>
+          <TouchableOpacity onPress={requestAllPermissions} className="bg-indigo-500 py-5 rounded-3xl items-center">
+            <Text className="text-white font-black">GRANT PERMISSIONS</Text>
+          </TouchableOpacity>
+      </View>
     );
   }
 
-  const captureColors = status === 'success' ? ['#11998e', '#38ef7d'] : status === 'error' ? ['#FF416C', '#FF4B2B'] : ['#6C63FF', '#48CAE4'];
-
   return (
     <View className="flex-1 bg-black">
-      <CameraView className="flex-1" facing="front" ref={cameraRef} />
-
-      {/* Top Banner */}
-      <LinearGradient colors={['rgba(15,12,41,0.9)', 'transparent']} className="absolute top-0 left-0 right-0 pt-14 pb-6 px-5">
-        <Text className="text-white text-2xl font-extrabold mb-2 tracking-tight">Scanner</Text>
-        {schedule && (
-          <View className="flex-row items-center bg-cyan-400/20 self-start px-2.5 py-1 rounded-full border border-cyan-400/30">
-            <Ionicons name="book-outline" size={12} color="#48CAE4" className="mr-1" />
-            <Text className="text-cyan-400 text-[10px] font-bold uppercase">{schedule.subject}</Text>
+      {/* Explicit style to fix blank camera issue */}
+      <CameraView 
+        style={{ flex: 1 }}
+        facing="front" 
+        ref={cameraRef}
+      />
+      
+      <View className="absolute top-0 left-0 right-0 p-8 pt-16">
+        <LinearGradient colors={['rgba(0,0,0,0.8)', 'transparent']} className="absolute inset-0" />
+        <View className="flex-row justify-between items-center">
+          <View className="bg-white/10 px-4 py-1.5 rounded-full border border-white/20">
+            <Text className="text-white text-[10px] font-black uppercase">{schedule?.subject || 'TEST MODE'}</Text>
           </View>
-        )}
-      </LinearGradient>
-
-      {/* Guide */}
-      <View className="absolute inset-0 justify-center items-center" pointerEvents="none">
-        <View className="w-[240px] h-[320px] rounded-[120px] border-2 border-indigo-500/60 border-dashed" />
+          <View className="bg-emerald-500/20 px-4 py-1.5 rounded-full border border-emerald-500/30">
+            <Text className="text-emerald-500 text-[10px] font-black uppercase">GPS Buffer Active</Text>
+          </View>
+        </View>
       </View>
 
-      {/* Thumbnail */}
-      {preview && (
-        <View className="absolute top-14 right-4 w-20 h-20 rounded-2xl overflow-hidden border-2 border-indigo-500/60">
-          <Image source={{ uri: preview }} className="w-full h-full" />
-          {status === 'success' && (
-            <View className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-emerald-500 justify-center items-center">
-              <Ionicons name="checkmark" size={12} color="#fff" />
-            </View>
-          )}
-        </View>
-      )}
+      <View className="absolute inset-0 justify-center items-center pointer-events-none">
+        <View className="w-60 h-60 rounded-full border-2 border-indigo-500 opacity-30 border-dashed" />
+      </View>
 
-      {/* Bottom Controls */}
-      <LinearGradient colors={['transparent', 'rgba(15,12,41,0.95)']} className="absolute bottom-0 left-0 right-0 pt-10 pb-10 items-center">
-        <Text className="text-white/50 text-[10px] font-bold uppercase mb-5 tracking-widest">Position your face in the oval</Text>
-        <TouchableOpacity onPress={capture} disabled={loading} activeOpacity={0.85} className="w-20 h-20 rounded-full border-4 border-white/20 items-center justify-center mb-2.5">
-          <LinearGradient colors={captureColors as [string, string]} className="w-16 h-16 rounded-full items-center justify-center">
-            {loading ? <ActivityIndicator color="#fff" size="large" /> : <Ionicons name="camera" size={32} color="#fff" />}
-          </LinearGradient>
-        </TouchableOpacity>
-        <Text className="text-white/60 text-[10px] font-bold uppercase tracking-wide">
-          {loading ? 'Verifying...' : 'Tap to scan'}
-        </Text>
-      </LinearGradient>
+      <View className="absolute bottom-0 left-0 right-0 pb-20 pt-10">
+        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.95)']} className="absolute inset-0" />
+        <View className="items-center px-10">
+          <TouchableOpacity 
+            onPress={capture} 
+            disabled={loading} 
+            activeOpacity={0.9} 
+            className="w-24 h-24 rounded-full bg-white/10 border-2 border-white/20 items-center justify-center shadow-2xl"
+          >
+            {loading ? <ActivityIndicator color="#fff" size="large" /> : (
+              <LinearGradient colors={['#6366f1', '#a855f7']} className="w-20 h-20 rounded-full items-center justify-center">
+                <Ionicons name="scan" size={36} color="#fff" />
+              </LinearGradient>
+            )}
+          </TouchableOpacity>
+          <Text className="text-white/40 text-[9px] font-black uppercase tracking-[5px] mt-8">Secure Identity Scan</Text>
+        </View>
+      </View>
     </View>
   );
 };

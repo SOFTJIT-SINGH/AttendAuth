@@ -23,13 +23,11 @@ export const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [isEmailFocused, setIsEmailFocused] = useState(false);
-  const [isPassFocused, setIsPassFocused] = useState(false);
   const { setSession } = useAuthStore();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Missing Fields', 'Please enter your email and password.');
+      Alert.alert('Details Needed', 'Please enter your email and password.');
       return;
     }
     setLoading(true);
@@ -42,7 +40,7 @@ export const LoginScreen = () => {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('id, email, role, is_verified, phone, device_id, face_ref_blob')
+        .select('*')
         .eq('id', data.user!.id)
         .single();
 
@@ -55,82 +53,66 @@ export const LoginScreen = () => {
   };
 
   return (
-    <View className="flex-1 bg-black">
-      {/* Background blobs */}
-      <View className="absolute top-[-10%] left-[-20%] w-[150%] h-[70%] rounded-full opacity-30">
+    <View className="flex-1 bg-[#020617]">
+      <View className="absolute top-[-5%] w-full h-[35%] opacity-20">
         <LinearGradient colors={['#6366f1', 'rgba(0,0,0,0)']} className="flex-1" />
-      </View>
-      <View className="absolute bottom-[-20%] right-[-20%] w-[120%] h-[60%] rounded-full opacity-20">
-        <LinearGradient colors={['#a855f7', 'rgba(0,0,0,0)']} className="flex-1" />
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
-        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} className="px-8" keyboardShouldPersistTaps="handled">
-          <View className="items-center mb-12">
-            <View className="w-20 h-20 bg-white/10 rounded-3xl border border-white/20 items-center justify-center shadow-2xl backdrop-blur-3xl">
-              <Ionicons name="finger-print" size={42} color="#fff" />
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} className="px-10" keyboardShouldPersistTaps="handled">
+          
+          <View className="mb-14 items-center">
+            <View className="w-20 h-20 bg-white/5 border border-white/10 rounded-[28px] items-center justify-center shadow-xl">
+               <Ionicons name="finger-print" size={42} color="#fff" />
             </View>
-            <Text className="text-white text-4xl font-black tracking-tighter mt-6">AttendAuth</Text>
+            <Text className="text-white text-4xl font-black tracking-tight mt-6 italic">Secure Entry</Text>
+            <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[5px] mt-2">AttendAuth Logic</Text>
           </View>
 
-          <View className="bg-white/5 rounded-[40px] p-8 border border-white/10">
-            <Text className="text-white text-2xl font-bold mb-8">Login</Text>
-
-            {/* Email Field */}
-            <View 
-              style={{ borderColor: isEmailFocused ? '#6366f1' : 'rgba(255,255,255,0.1)' }}
-              className="mb-5 rounded-3xl border bg-white/5 px-5 py-5 flex-row items-center"
-            >
-              <Ionicons name="mail-outline" size={20} color="#94a3b8" className="mr-4" />
+          <View className="space-y-4 gap-4">
+            <View className="bg-white/5 border border-white/10 rounded-[30px] p-5 flex-row items-center">
+              <Ionicons name="mail-outline" size={18} color="#64748b" className="mr-4" />
               <TextInput
-                placeholder="Email address"
-                placeholderTextColor="#64748b"
+                placeholder="Email Address"
+                placeholderTextColor="#475569"
                 value={email}
                 onChangeText={setEmail}
-                onFocus={() => setIsEmailFocused(true)}
-                onBlur={() => setIsEmailFocused(false)}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 style={{ color: '#ffffff' }}
-                className="flex-1 text-lg font-medium"
+                className="flex-1 text-base font-bold"
               />
             </View>
 
-            {/* Password Field */}
-            <View 
-              style={{ borderColor: isPassFocused ? '#6366f1' : 'rgba(255,255,255,0.1)' }}
-              className="mb-8 rounded-3xl border bg-white/5 px-5 py-5 flex-row items-center"
-            >
-              <Ionicons name="lock-closed-outline" size={20} color="#94a3b8" className="mr-4" />
+            <View className="bg-white/5 border border-white/10 rounded-[30px] p-5 flex-row items-center">
+              <Ionicons name="lock-closed-outline" size={18} color="#64748b" className="mr-4" />
               <TextInput
                 placeholder="Password"
-                placeholderTextColor="#64748b"
+                placeholderTextColor="#475569"
                 value={password}
                 onChangeText={setPassword}
-                onFocus={() => setIsPassFocused(true)}
-                onBlur={() => setIsPassFocused(false)}
                 secureTextEntry={!showPassword}
                 style={{ color: '#ffffff' }}
-                className="flex-1 text-lg font-medium"
+                className="flex-1 text-base font-bold"
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color="#4b5563" />
+                <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={18} color="#475569" />
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.9} className="rounded-3xl overflow-hidden shadow-2xl">
-              <LinearGradient colors={['#6366f1', '#4f46e5']} className="py-5 items-center">
-                {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-black text-lg uppercase tracking-widest">Sign In</Text>}
+            <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.9} className="mt-6 rounded-[30px] overflow-hidden shadow-2xl shadow-indigo-500/20">
+              <LinearGradient colors={['#6366f1', '#4f46e5']} className="py-5 items-center justify-center">
+                {loading ? <ActivityIndicator color="#fff" /> : (
+                  <Text className="text-white font-black text-sm uppercase tracking-[4px]">Sign In</Text>
+                )}
               </LinearGradient>
             </TouchableOpacity>
 
-            <View className="flex-row justify-center mt-10">
-              <Text className="text-gray-500 font-medium">New? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                <Text className="text-indigo-400 font-bold">Register</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')} className="pt-8 items-center">
+              <Text className="text-gray-500 text-xs font-semibold">Need an account? <Text className="text-indigo-400 font-bold underline">Register</Text></Text>
+            </TouchableOpacity>
           </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

@@ -16,6 +16,7 @@ import { ManageClasses } from '../screens/hod/ManageClasses';
 import { ManageStaff } from '../screens/hod/ManageStaff';
 import { ManageStudents } from '../screens/teacher/ManageStudents';
 import { PendingVerificationScreen } from '../screens/auth/PendingVerification';
+import { ProfileScreen } from '../screens/common/Profile';
 
 const Root = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -23,10 +24,10 @@ const TeacherStack = createStackNavigator();
 const HoDStack = createStackNavigator();
 
 const TAB_BAR_STYLE = {
-  backgroundColor: '#0F0C29',
-  borderTopColor: 'rgba(255,255,255,0.08)',
+  backgroundColor: '#0F172A',
+  borderTopColor: 'rgba(255,255,255,0.05)',
   borderTopWidth: 1,
-  height: Platform.OS === 'ios' ? 88 : 68,
+  height: Platform.OS === 'ios' ? 88 : 70,
   paddingBottom: Platform.OS === 'ios' ? 24 : 12,
   paddingTop: 10,
   elevation: 0,
@@ -39,7 +40,7 @@ type TabIconProps = {
   activeBg?: string;
 };
 
-const TabIcon = ({ name, focused, color, activeBg = 'bg-indigo-500/20' }: TabIconProps) => (
+const TabIcon = ({ name, focused, color, activeBg = 'bg-indigo-500/10' }: TabIconProps) => (
   <View className={`w-11 h-8 rounded-xl justify-center items-center ${focused ? activeBg : ''}`}>
     <Ionicons name={name as any} size={22} color={color} />
   </View>
@@ -50,14 +51,27 @@ const StudentTabs = () => (
     screenOptions={{
       headerShown: false,
       tabBarStyle: TAB_BAR_STYLE,
-      tabBarActiveTintColor: '#6C63FF',
-      tabBarInactiveTintColor: '#4B5563',
+      tabBarActiveTintColor: '#6366f1',
+      tabBarInactiveTintColor: '#475569',
       tabBarLabelStyle: { fontSize: 10, fontWeight: '800', marginTop: 2, textTransform: 'uppercase' },
     }}
   >
-    <Tab.Screen name="Home" component={StudentDashboard} options={{ tabBarLabel: 'Home', tabBarIcon: ({ focused, color }) => (<TabIcon name={focused ? 'home' : 'home-outline'} focused={focused} color={color} />) }} />
-    <Tab.Screen name="Mark" component={MarkAttendance} options={{ tabBarLabel: 'Scan', tabBarIcon: ({ focused, color }) => (<TabIcon name={focused ? 'camera' : 'camera-outline'} focused={focused} color={color} />) }} />
-    <Tab.Screen name="History" component={AttendanceHistory} options={{ tabBarLabel: 'History', tabBarIcon: ({ focused, color }) => (<TabIcon name={focused ? 'time' : 'time-outline'} focused={focused} color={color} />) }} />
+    <Tab.Screen name="Home" component={StudentDashboard} options={{ 
+      tabBarLabel: 'Home',
+      tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'home' : 'home-outline'} focused={focused} color={color} />
+    }} />
+    <Tab.Screen name="Mark" component={MarkAttendance} options={{ 
+      tabBarLabel: 'Check-In',
+      tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'camera' : 'camera-outline'} focused={focused} color={color} />
+    }} />
+    <Tab.Screen name="History" component={AttendanceHistory} options={{ 
+      tabBarLabel: 'History',
+      tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'list' : 'list-outline'} focused={focused} color={color} />
+    }} />
+    <Tab.Screen name="Profile" component={ProfileScreen} options={{ 
+      tabBarLabel: 'My Profile',
+      tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} color={color} />
+    }} />
   </Tab.Navigator>
 );
 
@@ -66,13 +80,23 @@ const TeacherTabs = () => (
     screenOptions={{
       headerShown: false,
       tabBarStyle: TAB_BAR_STYLE,
-      tabBarActiveTintColor: '#F7971E',
-      tabBarInactiveTintColor: '#4B5563',
+      tabBarActiveTintColor: '#f59e0b',
+      tabBarInactiveTintColor: '#475569',
       tabBarLabelStyle: { fontSize: 10, fontWeight: '800', marginTop: 2, textTransform: 'uppercase' },
     }}
   >
-    <Tab.Screen name="Dashboard" component={TeacherDashboard} options={{ tabBarLabel: 'Main', tabBarIcon: ({ focused, color }) => (<TabIcon name={focused ? 'home' : 'home-outline'} focused={focused} color={color} activeBg="bg-orange-500/20" />) }} />
-    <Tab.Screen name="Reports" component={TeacherReports} options={{ tabBarLabel: 'Review', tabBarIcon: ({ focused, color }) => (<TabIcon name={focused ? 'hourglass' : 'hourglass-outline'} focused={focused} color={color} activeBg="bg-orange-500/20" />) }} />
+    <Tab.Screen name="Dashboard" component={TeacherDashboard} options={{ 
+      tabBarLabel: 'Home',
+      tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'grid' : 'grid-outline'} focused={focused} color={color} activeBg="bg-orange-500/10" />
+    }} />
+    <Tab.Screen name="Reports" component={TeacherReports} options={{ 
+      tabBarLabel: 'Reports',
+      tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'document-text' : 'document-text-outline'} focused={focused} color={color} activeBg="bg-orange-500/10" />
+    }} />
+    <Tab.Screen name="Profile" component={ProfileScreen} options={{ 
+      tabBarLabel: 'My Profile',
+      tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} color={color} activeBg="bg-orange-500/10" />
+    }} />
   </Tab.Navigator>
 );
 
@@ -80,12 +104,34 @@ const TeacherNavigator = () => (
   <TeacherStack.Navigator screenOptions={{ headerShown: false }}>
     <TeacherStack.Screen name="TeacherTabs" component={TeacherTabs} />
     <TeacherStack.Screen name="ManageStudents" component={ManageStudents} />
+    <TeacherStack.Screen name="ManageClasses" component={ManageClasses} />
   </TeacherStack.Navigator>
+);
+
+const HoDTabs = () => (
+  <Tab.Navigator
+    screenOptions={{
+      headerShown: false,
+      tabBarStyle: TAB_BAR_STYLE,
+      tabBarActiveTintColor: '#0ea5e9',
+      tabBarInactiveTintColor: '#475569',
+      tabBarLabelStyle: { fontSize: 10, fontWeight: '800', marginTop: 2, textTransform: 'uppercase' },
+    }}
+  >
+    <Tab.Screen name="HHome" component={HoDDashboard} options={{ 
+      tabBarLabel: 'Home',
+      tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'rocket' : 'rocket-outline'} focused={focused} color={color} activeBg="bg-sky-500/10" />
+    }} />
+    <Tab.Screen name="HProfile" component={ProfileScreen} options={{ 
+      tabBarLabel: 'My Profile',
+      tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} color={color} activeBg="bg-sky-500/10" />
+    }} />
+  </Tab.Navigator>
 );
 
 const HoDNavigator = () => (
   <HoDStack.Navigator screenOptions={{ headerShown: false }}>
-    <HoDStack.Screen name="HoDDashboard" component={HoDDashboard} />
+    <HoDStack.Screen name="HoDTabs" component={HoDTabs} />
     <HoDStack.Screen name="ManageClasses" component={ManageClasses} />
     <HoDStack.Screen name="ManageStaff" component={ManageStaff} />
   </HoDStack.Navigator>
@@ -93,7 +139,6 @@ const HoDNavigator = () => (
 
 export const AppNavigator = () => {
   const { user, loading } = useAuthStore();
-
   if (loading) return null;
 
   return (

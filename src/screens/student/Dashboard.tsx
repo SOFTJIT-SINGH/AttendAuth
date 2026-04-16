@@ -1,93 +1,127 @@
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../../services/supabase';
 import { useAuthStore } from '../../store/authStore';
-
-const QUICK_ACTIONS = [
-  { label: 'Mark Attendance', screen: 'Mark', icon: 'camera', color: ['#6C63FF', '#48CAE4'] as [string,string] },
-  { label: 'View History', screen: 'History', icon: 'time', color: ['#11998e', '#38ef7d'] as [string,string] },
-];
-
-const STATS = [
-  { label: 'This Week', value: '—', icon: 'calendar-outline' },
-  { label: 'Total', value: '—', icon: 'checkmark-circle-outline' },
-  { label: 'Pending', value: '—', icon: 'hourglass-outline' },
-];
 
 export const StudentDashboard = ({ navigation }: any) => {
   const { user, logout } = useAuthStore();
-  const initials = user?.email?.slice(0, 2).toUpperCase() ?? 'ST';
+  const [stats, setStats] = useState({ total: 0, pending: 0, lastWeek: 0 });
+  const [loading, setLoading] = useState(true);
+
+  const fetchStats = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('attendance_logs')
+        .select('status, marked_at')
+        .eq('student_id', user.id);
+
+      if (data) {
+        const total = data.filter(r => r.status === 'PRESENT').length;
+        const pending = data.filter(r => r.status === 'PENDING_APPROVAL').length;
+        
+        // Count last 7 days
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        const lastWeek = data.filter(r => new Date(r.marked_at) > weekAgo && r.status === 'PRESENT').length;
+
+        setStats({ total, pending, lastWeek });
+      }
+    } catch (e) {
+      console.error('Stats Error:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+    // Refresh when screen is focused would be better, but standard useEffect handles mount.
+    const unsubscribe = navigation.addListener('focus', fetchStats);
+    return unsubscribe;
+  }, [navigation]);
 
   return (
-    <LinearGradient colors={['#0F0C29', '#1a1a3e', '#0F0C29']} className="flex-1">
-      <ScrollView contentContainerStyle={{paddingBottom: 40}} className="px-5 pt-14" showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View className="flex-row justify-between items-start mb-3">
+    <View className="flex-1 bg-[#020617]">
+      {/* Absolute background accent */}
+      <View className="absolute top-0 w-full h-80 opacity-10">
+        <LinearGradient colors={['#6366f1', 'rgba(0,0,0,0)']} className="flex-1" />
+      </View>
+
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} className="px-6 pt-16" showsVerticalScrollIndicator={false}>
+        {/* Profile / Header */}
+        <View className="flex-row justify-between items-center mb-10">
           <View>
-            <Text className="text-white text-2xl font-extrabold">Good Day 👋</Text>
-            <Text className="text-gray-500 text-xs font-semibold">{user?.email}</Text>
+            <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[5px] mb-1">Authenticated</Text>
+            <Text className="text-white text-3xl font-black tracking-tight">Student Portal</Text>
           </View>
-          <View className="flex-row items-center space-x-2.5 gap-2.5">
-            <View className="w-10 h-10 rounded-full bg-indigo-500/20 border-2 border-indigo-500 items-center justify-center">
-              <Text className="text-indigo-500 font-extrabold text-sm">{initials}</Text>
+          <TouchableOpacity onPress={logout} className="w-12 h-12 rounded-[20px] bg-red-500/10 items-center justify-center border border-red-500/20">
+            <Ionicons name="power" size={20} color="#ef4444" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Dynamic Stats Cards */}
+        <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[3px] mb-4 px-1">My Progress</Text>
+        <View className="flex-row space-x-3 gap-3 mb-10">
+          <View className="flex-1 bg-white/5 border border-white/10 rounded-[30px] p-5">
+            <Text className="text-gray-500 text-[9px] font-black uppercase tracking-widest mb-2">Total</Text>
+            {loading ? <ActivityIndicator size="small" color="#6366f1" /> : <Text className="text-white text-3xl font-black">{stats.total}</Text>}
+            <Text className="text-emerald-500 text-[8px] font-bold uppercase mt-1">Present</Text>
+          </View>
+          <View className="flex-1 bg-white/5 border border-white/10 rounded-[30px] p-5">
+            <Text className="text-gray-500 text-[9px] font-black uppercase tracking-widest mb-2">Pending</Text>
+            {loading ? <ActivityIndicator size="small" color="#6366f1" /> : <Text className="text-white text-3xl font-black">{stats.pending}</Text>}
+            <Text className="text-amber-500 text-[8px] font-bold uppercase mt-1">Waiting</Text>
+          </View>
+          <View className="flex-1 bg-indigo-500/10 border border-indigo-500/20 rounded-[30px] p-5">
+            <Text className="text-indigo-400 text-[9px] font-black uppercase tracking-widest mb-2">Last 7 Days</Text>
+            {loading ? <ActivityIndicator size="small" color="#6366f1" /> : <Text className="text-white text-3xl font-black">{stats.lastWeek}</Text>}
+            <Text className="text-indigo-400 text-[8px] font-bold uppercase mt-1">This Week</Text>
+          </View>
+        </View>
+
+        {/* Navigation Actions */}
+        <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[3px] mb-4 px-1">Options</Text>
+        <View className="space-y-4 gap-4">
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('Mark')}
+            activeOpacity={0.9}
+            className="bg-white/5 border border-white/10 p-6 rounded-[35px] flex-row items-center"
+          >
+            <LinearGradient colors={['#6366f1', '#4f46e5']} className="w-14 h-14 rounded-2xl items-center justify-center mr-4 shadow-lg shadow-indigo-500/50">
+              <Ionicons name="camera-outline" size={28} color="#fff" />
+            </LinearGradient>
+            <View className="flex-1">
+              <Text className="text-white text-lg font-black tracking-tight">Tap to Check-In</Text>
+              <Text className="text-gray-500 text-xs font-medium">Scan your face</Text>
             </View>
-            <TouchableOpacity onPress={logout} className="w-9 h-9 rounded-full bg-white/5 items-center justify-center border border-white/10">
-              <Ionicons name="log-out-outline" size={18} color="#9CA3AF" />
-            </TouchableOpacity>
-          </View>
-        </View>
+            <Ionicons name="chevron-forward" size={20} color="#4b5563" />
+          </TouchableOpacity>
 
-        {/* Role Badge */}
-        <View className="flex-row items-center bg-indigo-500/15 self-start px-3 py-1.5 rounded-full border border-indigo-500/30 mb-6">
-          <Ionicons name="school-outline" size={12} color="#6C63FF" className="mr-1.5" />
-          <Text className="text-indigo-500 text-[10px] font-bold uppercase tracking-wider">Student</Text>
-        </View>
-
-        {/* Stats Row */}
-        <View className="flex-row space-x-2.5 gap-2.5 mb-7">
-          {STATS.map((s) => (
-            <View key={s.label} className="flex-1 bg-white/5 rounded-2xl p-3.5 items-center border border-white/10">
-              <Ionicons name={s.icon as any} size={18} color="#6C63FF" className="mb-1.5" />
-              <Text className="text-white text-xl font-extrabold">{s.value}</Text>
-              <Text className="text-gray-500 text-[10px] text-center font-medium">{s.label}</Text>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('History')}
+            activeOpacity={0.9}
+            className="bg-white/5 border border-white/10 p-6 rounded-[35px] flex-row items-center"
+          >
+            <View className="w-14 h-14 bg-white/5 rounded-2xl items-center justify-center mr-4 border border-white/10">
+              <Ionicons name="list-outline" size={28} color="#94a3b8" />
             </View>
-          ))}
+            <View className="flex-1">
+              <Text className="text-white text-lg font-black tracking-tight">Attendance Record</Text>
+              <Text className="text-gray-400 text-xs font-medium">View your past logs</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#4b5563" />
+          </TouchableOpacity>
         </View>
 
-        {/* Quick Actions */}
-        <Text className="text-white text-lg font-bold mb-3.5 tracking-tight">Quick Actions</Text>
-        <View className="flex-row space-x-3 gap-3 mb-6">
-          {QUICK_ACTIONS.map((a) => (
-            <TouchableOpacity
-              key={a.screen}
-              onPress={() => navigation.navigate(a.screen)}
-              activeOpacity={0.85}
-              className="flex-1 rounded-3xl overflow-hidden shadow-xl"
-            >
-              <LinearGradient colors={a.color} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="p-5 min-h-[140px] justify-between">
-                <View className="w-12 h-12 rounded-2xl bg-white/20 items-center justify-center">
-                  <Ionicons name={a.icon as any} size={24} color="#fff" />
-                </View>
-                <View>
-                  <Text className="text-white text-sm font-bold">{a.label}</Text>
-                  <Ionicons name="arrow-forward" size={14} color="rgba(255,255,255,0.7)" className="mt-2" />
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Info Banner */}
-        <View className="flex-row items-start bg-cyan-400/10 rounded-2xl p-4 border border-cyan-400/20">
-          <Ionicons name="information-circle-outline" size={20} color="#48CAE4" className="mr-2.5" />
-          <View className="flex-1">
-            <Text className="text-cyan-400 font-bold text-sm mb-1">Attendance Reminder</Text>
-            <Text className="text-gray-400 text-xs leading-5">
-              Ensure you are within the classroom geofence before marking attendance.
-            </Text>
-          </View>
+        {/* Account Info */}
+        <View className="mt-10 p-6 bg-slate-900 rounded-[35px] border border-slate-800 items-center">
+          <Text className="text-gray-500 text-[9px] font-black uppercase tracking-[4px] mb-1">Session ID</Text>
+          <Text className="text-gray-400 text-[10px] font-mono">{user?.id}</Text>
         </View>
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 };

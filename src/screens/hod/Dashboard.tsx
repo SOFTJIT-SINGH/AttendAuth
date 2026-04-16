@@ -11,8 +11,8 @@ const STAT_CARDS = [
 ];
 
 const ADMIN_ACTIONS = [
-  { label: 'Manage Classes', screen: 'ManageClasses', icon: 'settings-outline', color: ['#6C63FF', '#48CAE4'] as [string,string], desc: 'Schedules & Geofencing' },
-  { label: 'Manage Teachers', screen: 'ManageStaff', icon: 'people-outline', color: ['#F7971E', '#FFD200'] as [string,string], desc: 'Verify and manage faculty' },
+  { label: 'Classes', screen: 'ManageClasses', icon: 'list-outline', colors: ['#6366f1', '#4f46e5'], desc: 'View and create sessions' },
+  { label: 'Teachers', screen: 'ManageStaff', icon: 'people-outline', colors: ['#f59e0b', '#d97706'], desc: 'View and verify faculty' },
 ];
 
 export const HoDDashboard = ({ navigation }: any) => {
@@ -25,7 +25,7 @@ export const HoDDashboard = ({ navigation }: any) => {
         {/* Header */}
         <View className="flex-row justify-between items-start mb-3">
           <View>
-            <Text className="text-white text-2xl font-extrabold">Welcome, HoD 🏛️</Text>
+            <Text className="text-white text-2xl font-extrabold">Principal Console 🏛️</Text>
             <Text className="text-gray-500 text-xs font-semibold">{user?.email}</Text>
           </View>
           <View className="flex-row items-center space-x-2.5 gap-2.5">
@@ -41,7 +41,7 @@ export const HoDDashboard = ({ navigation }: any) => {
         {/* Role Badge */}
         <View className="flex-row items-center bg-cyan-500/15 self-start px-3 py-1.5 rounded-full border border-cyan-500/30 mb-6">
           <Ionicons name="briefcase-outline" size={12} color="#48CAE4" className="mr-1.5" />
-          <Text className="text-cyan-500 text-[10px] font-bold uppercase tracking-wider">Head of Department</Text>
+          <Text className="text-cyan-500 text-[10px] font-bold uppercase tracking-wider">Institution Admin</Text>
         </View>
 
         {/* Overview */}

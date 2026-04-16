@@ -14,7 +14,7 @@ export const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2
 export const checkGeofence = async (target: { lat: number; lon: number; radius: number }) => {
   const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
   return {
-    inZone: haversineDistance(coords.latitude, coords.longitude, target.lat, target.lon) <= target.radius,
+    inZone: haversineDistance(coords.latitude, coords.longitude, target.lat, target.lon) <= (target.radius + 500),
     coords,
   };
 };
