@@ -215,7 +215,7 @@ export const ProfileScreen = () => {
             <View className="w-10 h-10 rounded-2xl bg-red-500/10 items-center justify-center mr-4">
               <Ionicons name="power" size={18} color="#ef4444" />
             </View>
-            <Text className="text-red-500 font-bold flex-1">Terminate Session</Text>
+            <Text className="text-red-500 font-bold flex-1">Log out</Text>
           </TouchableOpacity>
         </View>
 
