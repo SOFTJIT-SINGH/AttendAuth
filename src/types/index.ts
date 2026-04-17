@@ -3,6 +3,7 @@ export type UserRole = 'HOD' | 'TEACHER' | 'STUDENT';
 export interface UserProfile {
   id: string;
   email: string;
+  full_name: string | null;
   role: UserRole;
   is_verified: boolean;
   phone: string | null;

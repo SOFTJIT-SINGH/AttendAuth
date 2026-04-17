@@ -2,8 +2,10 @@ import { View, Text, TouchableOpacity, ScrollView, Alert, Platform } from 'react
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
+import { useNavigation } from '@react-navigation/native';
 
 export const ProfileScreen = () => {
+  const navigation = useNavigation<any>();
   const { user, logout } = useAuthStore();
 
   const handleLogout = () => {
@@ -32,7 +34,9 @@ export const ProfileScreen = () => {
           <View className="w-28 h-28 items-center justify-center">
             <View className="absolute inset-0 bg-indigo-500 rounded-[40px] opacity-20 rotate-12" />
             <View className="w-24 h-24 bg-white/10 rounded-[35px] border border-white/20 items-center justify-center shadow-2xl backdrop-blur-3xl">
-              <Text className="text-white text-3xl font-black">{user?.email?.slice(0, 1).toUpperCase()}</Text>
+              <Text className="text-white text-3xl font-black">
+                {(user?.full_name || user?.email || '?').slice(0, 1).toUpperCase()}
+              </Text>
             </View>
             {user?.is_verified && (
               <View className="absolute bottom-0 right-0 w-8 h-8 bg-emerald-500 rounded-full border-4 border-[#020617] items-center justify-center">
@@ -40,7 +44,13 @@ export const ProfileScreen = () => {
               </View>
             )}
           </View>
-          <Text className="text-white text-2xl font-black mt-6 tracking-tight">{user?.role} ACCOUNT</Text>
+          
+          <Text className="text-white text-2xl font-black mt-6 tracking-tight">
+            {user?.full_name || 'Anonymous'}
+          </Text>
+          <Text className="text-gray-500 text-[10px] font-black tracking-[4px] uppercase mt-1">
+            {user?.role} ACCOUNT
+          </Text>
           <View className="bg-indigo-500/10 px-4 py-1.5 rounded-full border border-indigo-500/20 mt-2">
             <Text className="text-indigo-400 text-[10px] font-black uppercase tracking-[3px]">Authorized Access</Text>
           </View>
@@ -65,6 +75,14 @@ export const ProfileScreen = () => {
         {/* Action Section */}
         <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[4px] mt-10 mb-4 px-2">Session Actions</Text>
         <View className="space-y-3 gap-3">
+          <TouchableOpacity onPress={() => navigation.navigate('Support')} className="flex-row items-center p-5 bg-white/5 rounded-[30px] border border-white/10 mb-2">
+            <View className="w-10 h-10 rounded-2xl bg-indigo-500/10 items-center justify-center mr-4">
+              <Ionicons name="help-buoy" size={18} color="#6366f1" />
+            </View>
+            <Text className="text-white font-bold flex-1">Help & Support Center</Text>
+            <Ionicons name="chevron-forward" size={18} color="#475569" />
+          </TouchableOpacity>
+
           <TouchableOpacity onPress={handleLogout} className="flex-row items-center p-5 bg-red-500/5 rounded-[30px] border border-red-500/10">
             <View className="w-10 h-10 rounded-2xl bg-red-500/10 items-center justify-center mr-4">
               <Ionicons name="power" size={18} color="#ef4444" />

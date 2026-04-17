@@ -25,6 +25,7 @@ type Role = 'HOD' | 'TEACHER' | 'STUDENT';
 export const RegisterScreen = () => {
   const navigation = useNavigation<any>();
   const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<Role>('STUDENT');
@@ -90,7 +91,7 @@ export const RegisterScreen = () => {
   };
 
   const handleRegister = async () => {
-    if (!email || !password || !phone) {
+    if (!email || !password || !phone || !fullName) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
@@ -109,6 +110,7 @@ export const RegisterScreen = () => {
         options: { 
           data: { 
             role, 
+            full_name: fullName.trim(),
             device_id: deviceId, 
             phone,
             face_ref_blob: photoBase64 // Store in DB for sync
@@ -223,6 +225,11 @@ export const RegisterScreen = () => {
             </View>
 
             <View className="bg-white/5 border border-white/10 rounded-[24px] p-5 flex-row items-center">
+              <Ionicons name="person-outline" size={18} color="#64748b" className="mr-4" />
+              <TextInput placeholder="Full Name" placeholderTextColor="#475569" value={fullName} onChangeText={setFullName} style={{ color: '#ffffff' }} className="flex-1 text-sm font-bold" />
+            </View>
+
+            <View className="bg-white/5 border border-white/10 rounded-[24px] p-5 flex-row items-center">
               <Ionicons name="mail-outline" size={18} color="#64748b" className="mr-4" />
               <TextInput placeholder="Email" placeholderTextColor="#475569" value={email} onChangeText={setEmail} autoCapitalize="none" style={{ color: '#ffffff' }} className="flex-1 text-sm font-bold" />
             </View>
@@ -235,12 +242,12 @@ export const RegisterScreen = () => {
 
           <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.9} className="rounded-[30px] overflow-hidden shadow-2xl mt-8">
             <LinearGradient colors={['#6366f1', '#4f46e5']} className="py-5 items-center justify-center">
-              {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-black text-sm uppercase tracking-[4px]">Join Now</Text>}
+              {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-black uppercase tracking-[2px] py-2 text-lg">Join Now</Text>}
             </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.goBack()} className="mt-6 items-center">
-             <Text className="text-gray-600 font-bold text-xs underline">Back to Sign In</Text>
+             <Text className="text-gray-600 font-bold text-md underline">Back to Sign In</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

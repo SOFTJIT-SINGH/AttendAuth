@@ -103,7 +103,7 @@ export const LoginScreen = () => {
             <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.9} className="mt-6 rounded-[30px] overflow-hidden shadow-2xl shadow-indigo-500/20">
               <LinearGradient colors={['#6366f1', '#4f46e5']} className="py-5 items-center justify-center">
                 {loading ? <ActivityIndicator color="#fff" /> : (
-                  <Text className="text-white font-black text-lg uppercase tracking-[2px] mx-auto py-4">Sign In</Text>
+                  <Text className="text-white font-black text-lg uppercase tracking-[2px] mx-auto py-2">Sign In</Text>
                 )}
               </LinearGradient>
             </TouchableOpacity>

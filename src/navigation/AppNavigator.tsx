@@ -17,6 +17,8 @@ import { ManageStaff } from '../screens/hod/ManageStaff';
 import { ManageStudents } from '../screens/teacher/ManageStudents';
 import { PendingVerificationScreen } from '../screens/auth/PendingVerification';
 import { ProfileScreen } from '../screens/common/Profile';
+import { ClassListScreen } from '../screens/common/ClassList';
+import { SupportScreen } from '../screens/common/Support';
 
 const Root = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -68,6 +70,10 @@ const StudentTabs = () => (
       tabBarLabel: 'History',
       tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'list' : 'list-outline'} focused={focused} color={color} />
     }} />
+    <Tab.Screen name="Schedule" component={ClassListScreen} options={{ 
+      tabBarLabel: 'Schedule',
+      tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'calendar' : 'calendar-outline'} focused={focused} color={color} />
+    }} />
     <Tab.Screen name="Profile" component={ProfileScreen} options={{ 
       tabBarLabel: 'My Profile',
       tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} color={color} />
@@ -92,6 +98,10 @@ const TeacherTabs = () => (
     <Tab.Screen name="Reports" component={TeacherReports} options={{ 
       tabBarLabel: 'Reports',
       tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'document-text' : 'document-text-outline'} focused={focused} color={color} activeBg="bg-orange-500/10" />
+    }} />
+    <Tab.Screen name="Schedule" component={ClassListScreen} options={{ 
+      tabBarLabel: 'Schedule',
+      tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'calendar' : 'calendar-outline'} focused={focused} color={color} activeBg="bg-orange-500/10" />
     }} />
     <Tab.Screen name="Profile" component={ProfileScreen} options={{ 
       tabBarLabel: 'My Profile',
@@ -122,6 +132,10 @@ const HoDTabs = () => (
       tabBarLabel: 'Home',
       tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'rocket' : 'rocket-outline'} focused={focused} color={color} activeBg="bg-sky-500/10" />
     }} />
+    <Tab.Screen name="Schedule" component={ClassListScreen} options={{ 
+      tabBarLabel: 'Schedule',
+      tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'calendar' : 'calendar-outline'} focused={focused} color={color} activeBg="bg-sky-500/10" />
+    }} />
     <Tab.Screen name="HProfile" component={ProfileScreen} options={{ 
       tabBarLabel: 'My Profile',
       tabBarIcon: ({ focused, color }) => <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} color={color} activeBg="bg-sky-500/10" />
@@ -134,6 +148,8 @@ const HoDNavigator = () => (
     <HoDStack.Screen name="HoDTabs" component={HoDTabs} />
     <HoDStack.Screen name="ManageClasses" component={ManageClasses} />
     <HoDStack.Screen name="ManageStaff" component={ManageStaff} />
+    <HoDStack.Screen name="ManageStudents" component={ManageStudents} />
+    <HoDStack.Screen name="Reports" component={TeacherReports} />
   </HoDStack.Navigator>
 );
 
@@ -152,11 +168,20 @@ export const AppNavigator = () => {
       ) : !user.is_verified ? (
         <Root.Screen name="Pending" component={PendingVerificationScreen} />
       ) : user.role === 'STUDENT' ? (
-        <Root.Screen name="Student" component={StudentTabs} />
+        <>
+          <Root.Screen name="Student" component={StudentTabs} />
+          <Root.Screen name="Support" component={SupportScreen} />
+        </>
       ) : user.role === 'TEACHER' ? (
-        <Root.Screen name="Teacher" component={TeacherNavigator} />
+        <>
+          <Root.Screen name="Teacher" component={TeacherNavigator} />
+          <Root.Screen name="Support" component={SupportScreen} />
+        </>
       ) : (
-        <Root.Screen name="HoD" component={HoDNavigator} />
+        <>
+          <Root.Screen name="HoD" component={HoDNavigator} />
+          <Root.Screen name="Support" component={SupportScreen} />
+        </>
       )}
     </Root.Navigator>
   );

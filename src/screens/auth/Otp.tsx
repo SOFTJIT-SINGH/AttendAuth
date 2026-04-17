@@ -40,12 +40,29 @@ export const OtpScreen = ({ route }: any) => {
     }
   }, [resendTimer]);
 
-  const fetchAndSetProfile = async (userId: string) => {
-    const { data: profile } = await supabase.from('profiles')
-      .select('id, email, role, is_verified, phone, device_id, face_ref_blob')
-      .eq('id', userId)
-      .single();
-    if (profile) setSession(profile as UserProfile);
+  const fetchAndSetProfile = async (userId: string, retries = 5) => {
+    for (let i = 0; i < retries; i++) {
+      console.log(`Fetching profile attempt ${i + 1}...`);
+      const { data: profile } = await supabase.from('profiles')
+        .select('id, email, role, is_verified, phone, device_id, face_ref_blob')
+        .eq('id', userId)
+        .single();
+      
+      if (profile) {
+        setSession(profile as UserProfile);
+        return;
+      }
+      // Wait 1s before retry
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    // If we still don't have a profile, something is wrong with the trigger
+    // or the session needs to be manually refreshed.
+    Alert.alert(
+      'Account Created', 
+      'Your email is verified! Please sign in to complete your profile.',
+      [{ text: 'Sign In', onPress: () => navigation.navigate('Login') }]
+    );
   };
 
   const handleVerify = async () => {
