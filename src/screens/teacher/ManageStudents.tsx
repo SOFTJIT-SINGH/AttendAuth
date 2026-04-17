@@ -18,6 +18,11 @@ export const ManageStudents = ({ navigation }: any) => {
   const [editedRole, setEditedRole] = useState('');
   const [updating, setUpdating] = useState(false);
 
+  // Attendance Modal State
+  const [attendanceModalVisible, setAttendanceModalVisible] = useState(false);
+  const [studentAttendance, setStudentAttendance] = useState<any[]>([]);
+  const [loadingAttendance, setLoadingAttendance] = useState(false);
+
   const fetchStudents = async () => {
     setLoading(true);
     // HODs can see everyone except other HODs, Teachers see students
@@ -89,6 +94,53 @@ export const ManageStudents = ({ navigation }: any) => {
     ]);
   };
 
+  const openAttendanceModal = async (student: any) => {
+    setEditingStudent(student);
+    setAttendanceModalVisible(true);
+    fetchStudentAttendance(student.id);
+  };
+
+  const fetchStudentAttendance = async (studentId: string) => {
+    setLoadingAttendance(true);
+    let query = supabase
+      .from('attendance_logs')
+      .select('*, class_schedules!inner(subject, teacher_id)')
+      .eq('student_id', studentId)
+      .order('marked_at', { ascending: false });
+    
+    if (currentUser?.role === 'TEACHER') {
+       query = query.eq('class_schedules.teacher_id', currentUser.id);
+    }
+    
+    const { data, error } = await query;
+    if (!error) setStudentAttendance(data || []);
+    setLoadingAttendance(false);
+  };
+
+  const updateStudentLog = async (logId: string, newStatus: string) => {
+    setStudentAttendance(prev => prev.map(log => log.id === logId ? { ...log, status: newStatus } : log));
+    const { data, error } = await supabase.from('attendance_logs').update({ status: newStatus }).eq('id', logId).select('id');
+    if (error || !data || data.length === 0) Alert.alert('Update Failed', 'Missing Database RLS permissions for staff updates.');
+  };
+
+  const renderAttendanceLog = ({ item }: { item: any }) => (
+    <View className="bg-white/5 p-4 rounded-3xl mb-3 border border-white/10">
+      <View className="flex-row justify-between mb-2">
+         <Text className="text-white font-black">{item.class_schedules?.subject}</Text>
+         <Text className={`text-[10px] font-black uppercase ${item.status === 'PRESENT' ? 'text-emerald-500' : item.status === 'ABSENT' ? 'text-red-500' : 'text-amber-500'}`}>{item.status}</Text>
+      </View>
+      <Text className="text-gray-500 text-[10px] uppercase font-bold mb-3">{new Date(item.marked_at).toLocaleString()}</Text>
+      <View className="flex-row gap-2">
+         <TouchableOpacity onPress={() => updateStudentLog(item.id, 'PRESENT')} className="flex-1 py-2 bg-emerald-500/10 rounded-xl items-center border border-emerald-500/20">
+            <Text className="text-emerald-500 text-[10px] font-black">PRESENT</Text>
+         </TouchableOpacity>
+         <TouchableOpacity onPress={() => updateStudentLog(item.id, 'ABSENT')} className="flex-1 py-2 bg-red-500/10 rounded-xl items-center border border-red-500/20">
+            <Text className="text-red-500 text-[10px] font-black">ABSENT</Text>
+         </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   const renderItem = ({ item }: { item: any }) => (
     <View className="bg-white/5 rounded-[40px] p-5 mb-4 border border-white/10 flex-row items-center">
       <View className="w-16 h-16 rounded-[28px] bg-indigo-500/10 items-center justify-center mr-4 border border-indigo-500/20 overflow-hidden">
@@ -111,6 +163,12 @@ export const ManageStudents = ({ navigation }: any) => {
         </View>
       </View>
       <View className="flex-row gap-2">
+        <TouchableOpacity 
+          onPress={() => openAttendanceModal(item)}
+          className="w-10 h-10 rounded-xl bg-orange-500/10 items-center justify-center border border-orange-500/20"
+        >
+          <Ionicons name="document-text" size={18} color="#f97316" />
+        </TouchableOpacity>
         <TouchableOpacity 
           onPress={() => openEditModal(item)}
           className="w-10 h-10 rounded-xl bg-white/5 items-center justify-center border border-white/10"
@@ -225,6 +283,35 @@ export const ManageStudents = ({ navigation }: any) => {
                  <Text className="text-red-500/50 text-center font-bold text-xs">Remove Profile Internally</Text>
               </TouchableOpacity>
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Attendance Modal */}
+      <Modal visible={attendanceModalVisible} transparent animationType="slide">
+        <View className="flex-1 bg-black/80 justify-end">
+          <View className="bg-[#0f172a] rounded-t-[50px] p-8 border-t border-white/10 h-[80%]">
+            <View className="flex-row justify-between items-center mb-6">
+              <View>
+                 <Text className="text-white text-2xl font-black">Audit Record</Text>
+                 <Text className="text-gray-500 text-[10px] font-black uppercase tracking-widest mt-1">{editingStudent?.full_name}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setAttendanceModalVisible(false)} className="w-10 h-10 rounded-full bg-white/5 items-center justify-center">
+                <Ionicons name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            {loadingAttendance ? (
+               <View className="flex-1 justify-center items-center"><ActivityIndicator color="#6366f1" /></View>
+            ) : (
+               <FlatList
+                 data={studentAttendance}
+                 keyExtractor={i => i.id}
+                 renderItem={renderAttendanceLog}
+                 contentContainerStyle={{ paddingBottom: 40 }}
+                 ListEmptyComponent={<Text className="text-gray-500 text-center mt-10 font-bold">No attendance logs available for this student in your classes.</Text>}
+               />
+            )}
           </View>
         </View>
       </Modal>
