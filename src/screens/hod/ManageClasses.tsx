@@ -78,7 +78,7 @@ export const ManageClasses = ({ navigation }: any) => {
           <Ionicons name="chevron-back" size={20} color="#fff" />
         </TouchableOpacity>
         <View className="flex-1">
-          <Text className="text-white text-2xl font-black tracking-tight">Create Session</Text>
+          <Text className="text-white text-2xl font-black tracking-tight">Create Class</Text>
           <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[3px] mt-0.5">Setup Attendance Check</Text>
         </View>
       </View>

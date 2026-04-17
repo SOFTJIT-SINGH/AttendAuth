@@ -25,7 +25,7 @@ export const HoDDashboard = ({ navigation }: any) => {
         {/* Header */}
         <View className="flex-row justify-between items-start mb-3">
           <View>
-            <Text className="text-white text-2xl font-extrabold">Principal Console 🏛️</Text>
+            <Text className="text-white text-2xl font-extrabold">HOD Console 🏛️</Text>
             <Text className="text-gray-500 text-xs font-semibold">{user?.email}</Text>
           </View>
           <View className="flex-row items-center space-x-2.5 gap-2.5">
@@ -67,7 +67,7 @@ export const HoDDashboard = ({ navigation }: any) => {
             activeOpacity={0.85}
             className="flex-row items-center bg-white/5 rounded-3xl mb-4 overflow-hidden border border-white/10 shadow-lg"
           >
-            <LinearGradient colors={a.color} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} className="w-16 h-[76px] items-center justify-center">
+            <LinearGradient colors={a.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} className="w-16 h-[76px] items-center justify-center">
               <Ionicons name={a.icon as any} size={24} color="#fff" />
             </LinearGradient>
             <View className="flex-1 px-4 py-3">

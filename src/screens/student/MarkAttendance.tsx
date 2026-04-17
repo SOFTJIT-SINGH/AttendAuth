@@ -117,15 +117,34 @@ export const MarkAttendance = () => {
   const isLocationGranted = locationPermission?.status === 'granted';
 
   if (!isCameraGranted || !isLocationGranted) {
+    const showSettings = (cameraPermission && !cameraPermission.canAskAgain && !cameraPermission.granted) || 
+                       (locationPermission && !locationPermission.canAskAgain && !locationPermission.granted);
+
     return (
       <View className="flex-1 bg-[#020617] justify-center px-10">
           <View className="items-center mb-10">
-            <Ionicons name="lock-closed" size={64} color="#6366f1" />
+            <Ionicons name="lock-closed-outline" size={64} color="#6366f1" />
             <Text className="text-white text-2xl font-black mt-6">ACCESS REQUIRED</Text>
+            <Text className="text-gray-500 text-center mt-3 font-medium">To mark attendance, we need camera and location access.</Text>
           </View>
-          <TouchableOpacity onPress={requestAllPermissions} className="bg-indigo-500 py-5 rounded-3xl items-center">
-            <Text className="text-white font-black">GRANT PERMISSIONS</Text>
+          
+          <TouchableOpacity 
+            onPress={showSettings ? openSettings : requestAllPermissions} 
+            activeOpacity={0.8}
+            className="rounded-3xl overflow-hidden mb-4"
+          >
+            <LinearGradient colors={['#6366f1', '#4f46e5']} className="py-5 items-center">
+              <Text className="text-white font-black uppercase tracking-widest">
+                {showSettings ? 'Open Phone Settings' : 'Grant Permissions'}
+              </Text>
+            </LinearGradient>
           </TouchableOpacity>
+
+          {showSettings && (
+            <TouchableOpacity onPress={requestAllPermissions} className="items-center py-2">
+              <Text className="text-indigo-400 font-bold text-xs">Try permission dialog again</Text>
+            </TouchableOpacity>
+          )}
       </View>
     );
   }

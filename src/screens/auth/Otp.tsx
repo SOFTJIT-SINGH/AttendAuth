@@ -25,28 +25,107 @@ export const OtpScreen = ({ route }: any) => {
   const [resendLoading, setResendLoading] = useState(false);
   const { setSession } = useAuthStore();
 
+  const [resendTimer, setResendTimer] = useState(0);
+
   useEffect(() => {
     if (!email) {
       Alert.alert('Error', 'Session lost.', [{ text: 'Back', onPress: () => navigation.navigate('Register') }]);
     }
   }, [email]);
 
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendTimer]);
+
+  const fetchAndSetProfile = async (userId: string) => {
+    const { data: profile } = await supabase.from('profiles')
+      .select('id, email, role, is_verified, phone, device_id, face_ref_blob')
+      .eq('id', userId)
+      .single();
+    if (profile) setSession(profile as UserProfile);
+  };
+
   const handleVerify = async () => {
-    if (token.length !== 6) return;
+    const cleanToken = token.trim();
+    if (cleanToken.length !== 6 || loading) return;
     setLoading(true);
+    
     try {
-      const { data, error } = await supabase.auth.verifyOtp({ email: email.trim(), token, type: 'signup' });
-      if (error) throw error;
-      if (data.user) {
-        const { data: profile } = await supabase.from('profiles')
-          .select('id, email, role, is_verified, phone, device_id, face_ref_blob')
-          .eq('id', data.user.id).single();
-        if (profile) setSession(profile as UserProfile);
+      console.log('Verifying OTP for:', email.trim());
+      // Try Signup first (Standard)
+      let { data, error } = await supabase.auth.verifyOtp({ 
+        email: email.trim(), 
+        token: cleanToken, 
+        type: 'signup' 
+      });
+      
+      // If signup fails, try magiclink (if they already existed)
+      if (error) {
+        console.log('Signup Verify failed, trying magiclink...');
+        const res = await supabase.auth.verifyOtp({ 
+          email: email.trim(), 
+          token: cleanToken, 
+          type: 'magiclink' 
+        });
+        data = res.data;
+        error = res.error;
       }
+
+      // If still fails, try email (generic)
+      if (error) {
+        console.log('Magiclink Verify failed, trying email type...');
+        const res = await supabase.auth.verifyOtp({ 
+          email: email.trim(), 
+          token: cleanToken, 
+          type: 'email' as any 
+        });
+        data = res.data;
+        error = res.error;
+      }
+      
+      if (error) {
+         console.log('All verification types failed:', error.message);
+         throw error;
+      }
+
+      if (data.user) {
+        console.log('Verification successful');
+        await fetchAndSetProfile(data.user.id);
+      } else {
+        throw new Error('Verification failed. No user returned.');
+      }
+    } catch (e: any) {
+      console.error('OTP Verification Exception:', e);
+      const isExpired = e.message.toLowerCase().includes('expired');
+      Alert.alert(
+        'Verification Failed', 
+        isExpired 
+          ? 'This code has expired or has already been used. Please try "Resend" to get a fresh code.' 
+          : e.message
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (resendLoading || resendTimer > 0) return;
+    setResendLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim(),
+      });
+      if (error) throw error;
+      setResendTimer(60);
+      Alert.alert('Success', 'New code sent!');
     } catch (e: any) {
       Alert.alert('Error', e.message);
     } finally {
-      setLoading(false);
+      setResendLoading(false);
     }
   };
 
@@ -98,8 +177,18 @@ export const OtpScreen = ({ route }: any) => {
               </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity className="mt-10 self-center">
-              <Text className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Didn't get code? <Text className="text-indigo-400">Resend</Text></Text>
+            <TouchableOpacity 
+              onPress={handleResend} 
+              disabled={resendLoading || resendTimer > 0} 
+              className="mt-10 self-center"
+            >
+              <Text className={`font-bold uppercase tracking-widest text-[10px] ${resendTimer > 0 ? 'text-gray-600' : 'text-indigo-400'}`}>
+                {resendTimer > 0 ? `Resend code in ${resendTimer}s` : "Didn't get code? Resend"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => navigation.navigate('Register')} className="mt-4 self-center">
+              <Text className="text-gray-500 font-bold uppercase tracking-widest text-[10px] opacity-50">Change Email</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
