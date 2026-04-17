@@ -13,7 +13,7 @@ export const TeacherDashboard = ({ navigation }: any) => {
   const fetchTeacherStats = async () => {
     if (!user) return;
     try {
-      const { count: pending } = await supabase.from('attendance_logs').select('*', { count: 'exact', head: true }).eq('status', 'PENDING_APPROVAL');
+      const { count: pending } = await supabase.from('attendance_logs').select('*, class_schedules!inner(teacher_id)', { count: 'exact', head: true }).eq('status', 'PENDING_APPROVAL').eq('class_schedules.teacher_id', user.id);
       const { count: classes } = await supabase.from('class_schedules').select('*', { count: 'exact', head: true }).eq('teacher_id', user.id);
       setStats({ pending: pending || 0, classes: classes || 0 });
     } catch (e) {
@@ -31,6 +31,7 @@ export const TeacherDashboard = ({ navigation }: any) => {
 
   const ACTIONS = [
     { label: 'Pending Approvals', screen: 'Registry', icon: 'hourglass-outline', colors: ['#f59e0b', '#d97706'], count: stats.pending },
+    { label: 'Full Attendance Logs', screen: 'History', icon: 'documents-outline', colors: ['#8b5cf6', '#6d28d9'], count: null },
     { label: 'Manage Classes', screen: 'ManageClasses', icon: 'calendar-outline', colors: ['#06b6d4', '#0891b2'], count: stats.classes },
     { label: 'Manage Students', screen: 'ManageStudents', icon: 'people-outline', colors: ['#6366f1', '#4f46e5'], count: null },
   ];

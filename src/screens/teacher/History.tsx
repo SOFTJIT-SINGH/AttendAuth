@@ -5,8 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
 import { useAuthStore } from '../../store/authStore';
 
-// FIX 1: We receive navigation directly from props. Do not use useNavigation hook here.
-export const TeacherReports = ({ navigation }: any) => {
+export const TeacherHistory = ({ navigation }: any) => {
   const { user } = useAuthStore();
   const [records, setRecords] = useState<any[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -23,8 +22,7 @@ export const TeacherReports = ({ navigation }: any) => {
           profiles:student_id (email, full_name),
           class_schedules!inner (subject, teacher_id)
         `)
-        .order('marked_at', { ascending: false })
-        .eq('status', 'PENDING_APPROVAL');
+        .order('marked_at', { ascending: false });
 
       if (user?.role === 'TEACHER') {
         query = query.eq('class_schedules.teacher_id', user.id);
@@ -45,7 +43,6 @@ export const TeacherReports = ({ navigation }: any) => {
     fetchRecords();
   }, []);
 
-  // UPDATE (Optimistic UI - Instant Visual Change)
   const updateStatus = async (id: string, newStatus: string) => {
     setRecords(prevRecords => 
       prevRecords.map(record => 
@@ -61,18 +58,13 @@ export const TeacherReports = ({ navigation }: any) => {
         .select('id');
       
       if (error) throw error;
-      if (!data || data.length === 0) throw new Error("Silent failure: Database RLS policies are blocking the update, or log not found.");
-      
-      setTimeout(() => {
-          setRecords(prev => prev.filter(r => r.id !== id));
-      }, 500); 
+      if (!data || data.length === 0) throw new Error("Silent DB failure: Missing update permissions (RLS).");
     } catch (e: any) {
        Alert.alert('Modification Failed', e.message);
        fetchRecords(true); 
     }
   };
 
-  // DELETE
   const deleteRecord = async (id: string) => {
     Alert.alert('Erase Audit Log', 'This action will permanently delete this record. Proceed?', [
       { text: 'Cancel', style: 'cancel' },
@@ -85,14 +77,12 @@ export const TeacherReports = ({ navigation }: any) => {
   };
 
   const renderItem = ({ item }: { item: any }) => {
-    // Audit Data Calculations
     const confidence = item.ai_confidence != null ? Math.round(Number(item.ai_confidence)) : null;
     const confColor = confidence == null ? '#94a3b8' : confidence >= 80 ? '#10b981' : confidence >= 60 ? '#f59e0b' : '#ef4444';
     const distance = item.distance_km != null ? Number(item.distance_km) : null;
     const distanceText = distance != null ? (distance < 1 ? `${(distance * 1000).toFixed(0)}m` : `${distance.toFixed(2)}km`) : 'N/A';
-    const isOutRange = distance != null && distance > 0.6; // 600m threshold
+    const isOutRange = distance != null && distance > 0.6;
 
-    // Status Badge Styling (Safe NativeWind syntax)
     let statusBgClass = 'bg-amber-500/10 border-amber-500/20';
     let statusTextClass = 'text-amber-500';
     
@@ -106,8 +96,6 @@ export const TeacherReports = ({ navigation }: any) => {
 
     return (
       <View className="bg-white/5 rounded-[35px] p-6 mb-4 border border-white/10">
-        
-        {/* Header: User Info & Status */}
         <View className="flex-row items-center mb-6">
           <View className="w-14 h-14 rounded-2xl bg-indigo-500/10 items-center justify-center mr-4 border border-indigo-500/20">
             <Text className="text-indigo-400 font-black text-lg">
@@ -132,7 +120,6 @@ export const TeacherReports = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* RESTORED: Audit Data Panel (Identity & Distance) */}
         <View className="flex-row gap-2 mb-4">
            <View className="flex-1 bg-white/5 p-3 rounded-2xl border border-white/5">
               <Text className="text-gray-600 text-[8px] font-black uppercase tracking-widest mb-1 text-center">Identity Match</Text>
@@ -144,14 +131,12 @@ export const TeacherReports = ({ navigation }: any) => {
            </View>
         </View>
 
-        {/* RESTORED: Identity Match Confidence Bar */}
         {confidence !== null && (
           <View className="h-1 bg-white/5 rounded-full overflow-hidden mb-6">
               <View className="h-full rounded-full" style={{ width: `${confidence}%`, backgroundColor: confColor }} />
           </View>
         )}
 
-        {/* Dynamic Controls - Instant UI Buttons */}
         <View className="flex-row gap-2 mt-2">
            {item.status !== 'PRESENT' && (
              <TouchableOpacity 
@@ -198,8 +183,8 @@ export const TeacherReports = ({ navigation }: any) => {
               </TouchableOpacity>
             )}
             <View>
-              <Text className="text-white text-3xl font-black italic tracking-tighter uppercase">Approvals</Text>
-              <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[4px] mt-1">Registry</Text>
+              <Text className="text-white text-3xl font-black italic tracking-tighter uppercase">Full Log</Text>
+              <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[4px] mt-1">Attendance History</Text>
             </View>
           </View>
         </View>
@@ -218,8 +203,8 @@ export const TeacherReports = ({ navigation }: any) => {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchRecords(true); }} tintColor="#6366f1" />}
           ListEmptyComponent={
             <View className="mt-20 items-center">
-              <Ionicons name="document-text-outline" size={48} color="#1e293b" />
-              <Text className="text-gray-500 font-bold mt-4">No records in this queue</Text>
+               <Ionicons name="documents-outline" size={48} color="#1e293b" />
+               <Text className="text-gray-500 font-bold mt-4">History log is empty</Text>
             </View>
           }
         />

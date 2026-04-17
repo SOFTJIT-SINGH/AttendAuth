@@ -11,6 +11,7 @@ import { MarkAttendance } from '../screens/student/MarkAttendance';
 import { AttendanceHistory } from '../screens/student/History';
 import { TeacherDashboard } from '../screens/teacher/Dashboard';
 import { TeacherReports } from '../screens/teacher/Reports';
+import { TeacherHistory } from '../screens/teacher/History';
 import { HoDDashboard } from '../screens/hod/Dashboard';
 import { ManageClasses } from '../screens/hod/ManageClasses';
 import { ManageStaff } from '../screens/hod/ManageStaff';
@@ -116,6 +117,7 @@ const TeacherNavigator = () => (
     <TeacherStack.Screen name="ManageStudents" component={ManageStudents} />
     <TeacherStack.Screen name="ManageClasses" component={ManageClasses} />
     <TeacherStack.Screen name="Registry" component={TeacherReports} />
+    <TeacherStack.Screen name="History" component={TeacherHistory} />
   </TeacherStack.Navigator>
 );
 
