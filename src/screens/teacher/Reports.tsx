@@ -3,29 +3,24 @@ import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, Refre
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
-import { useNavigation } from '@react-navigation/native';
 
-export const TeacherReports = () => {
-  const navigation = useNavigation<any>();
+// FIX 1: We receive navigation directly from props. Do not use useNavigation hook here.
+export const TeacherReports = ({ navigation }: any) => {
   const [records, setRecords] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'PENDING' | 'HISTORY'>('PENDING');
 
-  const fetchRecords = async () => {
-    setLoading(true);
+  const fetchRecords = async (isRefresh = false) => {
+    if (!isRefresh) setInitialLoading(true);
+    
     try {
       let query = supabase
         .from('attendance_logs')
         .select(`
           *,
-          profiles:student_id (
-            email,
-            full_name
-          ),
-          class_schedules:class_id (
-            subject
-          )
+          profiles:student_id (email, full_name),
+          class_schedules:class_id (subject)
         `)
         .order('marked_at', { ascending: false });
 
@@ -39,7 +34,7 @@ export const TeacherReports = () => {
     } catch (e: any) {
       Alert.alert('Fetch Error', e.message);
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
       setRefreshing(false);
     }
   };
@@ -48,7 +43,14 @@ export const TeacherReports = () => {
     fetchRecords();
   }, [activeTab]);
 
+  // UPDATE (Optimistic UI - Instant Visual Change)
   const updateStatus = async (id: string, newStatus: string) => {
+    setRecords(prevRecords => 
+      prevRecords.map(record => 
+        record.id === id ? { ...record, status: newStatus } : record
+      )
+    );
+
     try {
       const { error } = await supabase
         .from('attendance_logs')
@@ -57,36 +59,53 @@ export const TeacherReports = () => {
       
       if (error) throw error;
       
-      Alert.alert('Status Updated', `Log has been moved to ${newStatus.toLowerCase()} records.`);
-      fetchRecords();
+      if (activeTab === 'PENDING') {
+         setTimeout(() => {
+             setRecords(prev => prev.filter(r => r.id !== id));
+         }, 500); 
+      }
     } catch (e: any) {
        Alert.alert('Modification Failed', e.message);
+       fetchRecords(true); 
     }
   };
 
+  // DELETE
   const deleteRecord = async (id: string) => {
-    Alert.alert('Erase Audit Log', 'This action will permanently delete this attendance record from the database. Proceed?', [
+    Alert.alert('Erase Audit Log', 'This action will permanently delete this record. Proceed?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Erase', style: 'destructive', onPress: async () => {
+        setRecords(prev => prev.filter(r => r.id !== id));
         const { error } = await supabase.from('attendance_logs').delete().eq('id', id);
-        if (error) Alert.alert('Deletion Failed', error.message);
-        else {
-          Alert.alert('Log Erased', 'The attendance record has been wiped.');
-          fetchRecords();
-        }
+        if (error) fetchRecords(true); 
       }}
     ]);
   };
 
   const renderItem = ({ item }: { item: any }) => {
+    // Audit Data Calculations
     const confidence = item.ai_confidence != null ? Math.round(item.ai_confidence) : null;
     const confColor = confidence == null ? '#94a3b8' : confidence >= 80 ? '#10b981' : confidence >= 60 ? '#f59e0b' : '#ef4444';
     const distance = item.distance_km != null ? item.distance_km : null;
     const distanceText = distance != null ? (distance < 1 ? `${(distance * 1000).toFixed(0)}m` : `${distance.toFixed(2)}km`) : 'N/A';
     const isOutRange = distance != null && distance > 0.6; // 600m threshold
 
+    // Status Badge Styling (Safe NativeWind syntax)
+    let statusBgClass = 'bg-amber-500/10 border-amber-500/20';
+    let statusTextClass = 'text-amber-500';
+    
+    if (item.status === 'PRESENT') {
+      statusBgClass = 'bg-emerald-500/10 border-emerald-500/20';
+      statusTextClass = 'text-emerald-500';
+    } else if (item.status === 'ABSENT') {
+      statusBgClass = 'bg-red-500/10 border-red-500/20';
+      statusTextClass = 'text-red-500';
+    }
+
     return (
       <View className="bg-white/5 rounded-[35px] p-6 mb-4 border border-white/10">
+        
+        {/* Header: User Info & Status */}
         <View className="flex-row items-center mb-6">
           <View className="w-14 h-14 rounded-2xl bg-indigo-500/10 items-center justify-center mr-4 border border-indigo-500/20">
             <Text className="text-indigo-400 font-black text-lg">
@@ -102,8 +121,8 @@ export const TeacherReports = () => {
             </Text>
           </View>
           <View className="items-end">
-            <View className={`px-2 py-1 rounded-lg ${item.status === 'PRESENT' ? 'bg-emerald-500/10 border border-emerald-500/20' : item.status === 'ABSENT' ? 'bg-red-500/10 border border-red-500/20' : 'bg-amber-500/10 border border-amber-500/20'}`}>
-              <Text className={`text-[8px] font-black uppercase ${item.status === 'PRESENT' ? 'text-emerald-500' : item.status === 'ABSENT' ? 'text-red-500' : 'text-amber-500'}`}>
+            <View className={['px-2 py-1 rounded-lg border', statusBgClass].join(' ')}>
+              <Text className={['text-[8px] font-black uppercase', statusTextClass].join(' ')}>
                 {item.status ? String(item.status).replace('_', ' ') : 'UNKNOWN'}
               </Text>
             </View>
@@ -111,26 +130,27 @@ export const TeacherReports = () => {
           </View>
         </View>
 
-        {/* Audit Data Panel */}
-        <View className="flex-row gap-2 mb-6">
+        {/* RESTORED: Audit Data Panel (Identity & Distance) */}
+        <View className="flex-row gap-2 mb-4">
            <View className="flex-1 bg-white/5 p-3 rounded-2xl border border-white/5">
               <Text className="text-gray-600 text-[8px] font-black uppercase tracking-widest mb-1 text-center">Identity Match</Text>
               <Text style={{ color: confColor }} className="text-sm font-black text-center">{confidence || 0}%</Text>
            </View>
-           <View className={`flex-1 ${isOutRange ? 'bg-red-500/10 border-red-500/20' : 'bg-white/5 border-white/5'} p-3 rounded-2xl border`}>
+           <View className={['flex-1 p-3 rounded-2xl border', isOutRange ? 'bg-red-500/10 border-red-500/20' : 'bg-white/5 border-white/5'].join(' ')}>
               <Text className="text-gray-600 text-[8px] font-black uppercase tracking-widest mb-1 text-center">Distance Log</Text>
-              <Text className={`${isOutRange ? 'text-red-500' : 'text-white'} text-sm font-black text-center`}>{distanceText}</Text>
+              <Text className={['text-sm font-black text-center', isOutRange ? 'text-red-500' : 'text-white'].join(' ')}>{distanceText}</Text>
            </View>
         </View>
 
+        {/* RESTORED: Identity Match Confidence Bar */}
         {confidence !== null && (
-          <View className="h-1 bg-white/5 rounded-full overflow-hidden mb-8">
+          <View className="h-1 bg-white/5 rounded-full overflow-hidden mb-6">
               <View className="h-full rounded-full" style={{ width: `${confidence}%`, backgroundColor: confColor }} />
           </View>
         )}
 
-        {/* Dynamic Controls */}
-        <View className="flex-row gap-2 mt-4">
+        {/* Dynamic Controls - Instant UI Buttons */}
+        <View className="flex-row gap-2 mt-2">
            {item.status !== 'PRESENT' && (
              <TouchableOpacity 
                onPress={() => updateStatus(item.id, 'PRESENT')}
@@ -160,7 +180,6 @@ export const TeacherReports = () => {
     );
   };
 
-
   return (
     <View className="flex-1 bg-[#020617]">
       <LinearGradient colors={['#6366f115', 'transparent']} className="absolute inset-0 h-96" />
@@ -168,7 +187,8 @@ export const TeacherReports = () => {
       <View className="px-6 pt-16 pb-6">
         <View className="flex-row justify-between items-center mb-8">
           <View className="flex-row items-center">
-            {navigation.canGoBack() && (
+            {/* FIX 2: Safely check if navigation exists before calling functions on it */}
+            {navigation?.canGoBack?.() && (
               <TouchableOpacity 
                 onPress={() => navigation.goBack()}
                 className="w-10 h-10 rounded-xl bg-white/5 items-center justify-center border border-white/10 mr-4"
@@ -181,29 +201,26 @@ export const TeacherReports = () => {
               <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[4px] mt-1">Attendance Audit</Text>
             </View>
           </View>
-          <View className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 items-center justify-center">
-            <Ionicons name="shield-checkmark" size={24} color="#6366f1" />
-          </View>
         </View>
 
         {/* Tab Switcher */}
         <View className="flex-row bg-white/5 p-1.5 rounded-[22px] border border-white/10">
           <TouchableOpacity 
             onPress={() => setActiveTab('PENDING')}
-            className={`flex-1 py-3 items-center rounded-2xl ${activeTab === 'PENDING' ? 'bg-indigo-500 shadow-xl' : ''}`}
+            className={['flex-1 py-3 items-center rounded-2xl', activeTab === 'PENDING' ? 'bg-indigo-500 shadow-xl' : ''].join(' ')}
           >
-            <Text className={`text-[10px] font-black uppercase tracking-widest ${activeTab === 'PENDING' ? 'text-white' : 'text-gray-500'}`}>Approvals</Text>
+            <Text className={['text-[10px] font-black uppercase tracking-widest', activeTab === 'PENDING' ? 'text-white' : 'text-gray-500'].join(' ')}>Approvals</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => setActiveTab('HISTORY')}
-            className={`flex-1 py-3 items-center rounded-2xl ${activeTab === 'HISTORY' ? 'bg-indigo-500 shadow-xl' : ''}`}
+            className={['flex-1 py-3 items-center rounded-2xl', activeTab === 'HISTORY' ? 'bg-indigo-500 shadow-xl' : ''].join(' ')}
           >
-            <Text className={`text-[10px] font-black uppercase tracking-widest ${activeTab === 'HISTORY' ? 'text-white' : 'text-gray-500'}`}>Full Log</Text>
+            <Text className={['text-[10px] font-black uppercase tracking-widest', activeTab === 'HISTORY' ? 'text-white' : 'text-gray-500'].join(' ')}>Full Log</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {loading && !refreshing ? (
+      {initialLoading ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#6366f1" />
         </View>
@@ -213,7 +230,7 @@ export const TeacherReports = () => {
           renderItem={renderItem}
           keyExtractor={(i) => i.id}
           contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 100 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchRecords(); }} tintColor="#6366f1" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchRecords(true); }} tintColor="#6366f1" />}
           ListEmptyComponent={
             <View className="mt-20 items-center">
               <Ionicons name="document-text-outline" size={48} color="#1e293b" />
