@@ -115,6 +115,7 @@ const TeacherNavigator = () => (
     <TeacherStack.Screen name="TeacherTabs" component={TeacherTabs} />
     <TeacherStack.Screen name="ManageStudents" component={ManageStudents} />
     <TeacherStack.Screen name="ManageClasses" component={ManageClasses} />
+    <TeacherStack.Screen name="Registry" component={TeacherReports} />
   </TeacherStack.Navigator>
 );
 
@@ -149,7 +150,7 @@ const HoDNavigator = () => (
     <HoDStack.Screen name="ManageClasses" component={ManageClasses} />
     <HoDStack.Screen name="ManageStaff" component={ManageStaff} />
     <HoDStack.Screen name="ManageStudents" component={ManageStudents} />
-    <HoDStack.Screen name="Reports" component={TeacherReports} />
+    <HoDStack.Screen name="Registry" component={TeacherReports} />
   </HoDStack.Navigator>
 );
 

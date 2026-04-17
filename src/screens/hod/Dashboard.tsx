@@ -49,7 +49,7 @@ export const HoDDashboard = ({ navigation }: any) => {
 
   const STAT_CARDS = [
     { label: 'Total Students', value: stats.students.toString(), icon: 'people-outline', color: '#6366f1', screen: 'ManageStudents' },
-    { label: 'Attendance Logs', value: stats.reports.toString(), icon: 'document-text-outline', color: '#10b981', screen: 'Reports' },
+    { label: 'Attendance Logs', value: stats.reports.toString(), icon: 'document-text-outline', color: '#10b981', screen: 'Registry' },
   ];
 
   const ADMIN_ACTIONS = [
@@ -73,7 +73,7 @@ export const HoDDashboard = ({ navigation }: any) => {
         {/* Simplified Header */}
         <View className="flex-row justify-between items-center mb-10">
           <View>
-            <Text className="text-white text-3xl font-black italic tracking-tighter uppercase">Admin Console</Text>
+            <Text className="text-white text-3xl font-black italic tracking-tighter uppercase">HOD Dashboard</Text>
             <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[4px] mt-1">{user?.full_name || 'HOD'}</Text>
           </View>
           <TouchableOpacity onPress={() => navigation.navigate('HProfile')} className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 items-center justify-center">

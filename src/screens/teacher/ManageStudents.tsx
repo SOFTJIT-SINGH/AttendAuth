@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, Modal, TextInput, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, Modal, TextInput, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
@@ -24,9 +24,9 @@ export const ManageStudents = ({ navigation }: any) => {
     const query = supabase.from('profiles').select('*');
     
     if (currentUser?.role === 'TEACHER') {
-      await query.eq('role', 'STUDENT');
+      query.eq('role', 'STUDENT');
     } else {
-      await query.neq('id', currentUser?.id); // HOD sees everyone else
+      query.neq('id', currentUser?.id); // HOD sees everyone else
     }
 
     const { data, error } = await query;
@@ -60,7 +60,7 @@ export const ManageStudents = ({ navigation }: any) => {
       .eq('id', editingStudent.id);
 
     if (error) {
-       Alert.alert('Update Failed', error.message + '\n\nEnsure you have run the RLS hierarchy SQL commands in Supabase.');
+       Alert.alert('Update Failed', error.message);
     } else {
        Alert.alert('Success', 'Profile updated successfully.');
        setEditModalVisible(false);
@@ -90,16 +90,25 @@ export const ManageStudents = ({ navigation }: any) => {
   };
 
   const renderItem = ({ item }: { item: any }) => (
-    <View className="bg-white/5 rounded-3xl p-5 mb-4 border border-white/10 flex-row items-center">
-      <View className="w-14 h-14 rounded-[20px] bg-indigo-500/10 items-center justify-center mr-4 border border-indigo-500/20">
-        <Text className="text-indigo-400 font-black text-lg">{(item.full_name || item.email).slice(0, 1).toUpperCase()}</Text>
+    <View className="bg-white/5 rounded-[40px] p-5 mb-4 border border-white/10 flex-row items-center">
+      <View className="w-16 h-16 rounded-[28px] bg-indigo-500/10 items-center justify-center mr-4 border border-indigo-500/20 overflow-hidden">
+        {item.face_ref_blob ? (
+          <Image source={{ uri: `data:image/jpeg;base64,${item.face_ref_blob}` }} className="w-full h-full" />
+        ) : (
+          <Text className="text-indigo-400 font-black text-xl">{(item.full_name || item.email).slice(0, 1).toUpperCase()}</Text>
+        )}
       </View>
       <View className="flex-1">
-        <Text className="text-white font-black text-base" numberOfLines={1}>{item.full_name || 'No Name'}</Text>
-        <Text className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">{item.role}</Text>
-        <Text className={`text-[10px] font-black mt-1 ${item.is_verified ? 'text-emerald-500' : 'text-amber-500'}`}>
-          {item.is_verified ? '✓ VERIFIED' : '⏰ PENDING'}
-        </Text>
+        <Text className="text-white font-black text-base" numberOfLines={1}>{item.full_name || 'Unregistered'}</Text>
+        <Text className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mt-0.5" numberOfLines={1}>{item.email}</Text>
+        <View className="flex-row items-center mt-2">
+            <View className="bg-indigo-500/10 px-2 py-0.5 rounded-md mr-2">
+                <Text className="text-indigo-400 text-[8px] font-black">{item.role}</Text>
+            </View>
+            <Text className={`text-[9px] font-black ${item.is_verified ? 'text-emerald-500' : 'text-amber-500'}`}>
+              {item.is_verified ? '✓ VERIFIED' : '⏰ PENDING'}
+            </Text>
+        </View>
       </View>
       <View className="flex-row gap-2">
         <TouchableOpacity 
@@ -112,13 +121,7 @@ export const ManageStudents = ({ navigation }: any) => {
           onPress={() => toggleVerify(item.id, item.is_verified)}
           className={`w-10 h-10 rounded-xl items-center justify-center ${item.is_verified ? 'bg-amber-500/10' : 'bg-emerald-500/10'}`}
         >
-          <Ionicons name={item.is_verified ? "close" : "checkmark"} size={18} color={item.is_verified ? "#FBBF24" : "#10b981"} />
-        </TouchableOpacity>
-        <TouchableOpacity 
-          onPress={() => deleteUser(item.id)}
-          className="w-10 h-10 rounded-xl bg-red-500/10 items-center justify-center"
-        >
-          <Ionicons name="trash-outline" size={18} color="#ef4444" />
+          <Ionicons name={item.is_verified ? "close-outline" : "checkmark-outline"} size={18} color={item.is_verified ? "#FBBF24" : "#10b981"} />
         </TouchableOpacity>
       </View>
     </View>
@@ -129,12 +132,14 @@ export const ManageStudents = ({ navigation }: any) => {
       <LinearGradient colors={['#6366f115', 'transparent']} className="absolute inset-0 h-96" />
       
       <View className="px-6 pt-16 pb-6 flex-row justify-between items-center">
-        <TouchableOpacity onPress={() => navigation.goBack()} className="w-12 h-12 rounded-2xl bg-white/5 items-center justify-center border border-white/10">
-          <Ionicons name="chevron-back" size={24} color="#fff" />
-        </TouchableOpacity>
+        {navigation?.canGoBack?.() ? (
+          <TouchableOpacity onPress={() => navigation.goBack()} className="w-12 h-12 rounded-2xl bg-white/5 items-center justify-center border border-white/10">
+            <Ionicons name="chevron-back" size={24} color="#fff" />
+          </TouchableOpacity>
+        ) : <View className="w-12 h-12" />}
         <View className="items-center">
-          <Text className="text-white text-xl font-black italic tracking-tight">Identity Center</Text>
-          <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[3px]">Manage Profiles</Text>
+          <Text className="text-white text-xl font-black italic tracking-tight uppercase">Identity Center</Text>
+          <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[3px]">Institutional Registry</Text>
         </View>
         <TouchableOpacity onPress={fetchStudents} className="w-12 h-12 rounded-2xl bg-white/5 items-center justify-center border border-white/10">
           <Ionicons name="refresh" size={20} color="#6366f1" />
@@ -165,26 +170,35 @@ export const ManageStudents = ({ navigation }: any) => {
         <View className="flex-1 bg-black/80 justify-end">
           <View className="bg-[#0f172a] rounded-t-[50px] p-10 border-t border-white/10">
             <View className="flex-row justify-between items-center mb-8">
-              <Text className="text-white text-2xl font-black">Edit Profile</Text>
+              <Text className="text-white text-2xl font-black">Adjust Credentials</Text>
               <TouchableOpacity onPress={() => setEditModalVisible(false)} className="w-10 h-10 rounded-full bg-white/5 items-center justify-center">
                 <Ionicons name="close" size={24} color="#fff" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView space-y-4 gap-4>
+            <ScrollView space-y-4 gap-4 showsVerticalScrollIndicator={false}>
+              {editingStudent?.face_ref_blob && (
+                 <View className="items-center mb-6">
+                    <View className="w-32 h-32 rounded-[40px] border-2 border-indigo-500 overflow-hidden">
+                       <Image source={{ uri: `data:image/jpeg;base64,${editingStudent.face_ref_blob}` }} className="w-full h-full" />
+                    </View>
+                    <Text className="text-gray-500 text-[10px] font-black uppercase mt-4 tracking-widest">Enrolled Identity</Text>
+                 </View>
+              )}
+
               <View className="bg-white/5 rounded-3xl p-5 border border-white/10">
-                <Text className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-2">Full Name</Text>
+                <Text className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-2">Display Name</Text>
                 <TextInput value={editedName} onChangeText={setEditedName} style={{color: '#fff'}} className="font-bold text-base" />
               </View>
 
               <View className="bg-white/5 rounded-3xl p-5 border border-white/10">
-                <Text className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-2">Phone Number</Text>
+                <Text className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-2">Phone Link</Text>
                 <TextInput value={editedPhone} onChangeText={setEditedPhone} style={{color: '#fff'}} className="font-bold text-base" keyboardType="phone-pad" />
               </View>
 
               {currentUser?.role === 'HOD' && (
                 <View className="mt-4">
-                  <Text className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-4">Assign Role</Text>
+                  <Text className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-4">Privilege Level</Text>
                   <View className="flex-row gap-2">
                     {['STUDENT', 'TEACHER', 'HOD'].map(r => (
                       <TouchableOpacity 
@@ -202,9 +216,13 @@ export const ManageStudents = ({ navigation }: any) => {
               <TouchableOpacity 
                 onPress={handleUpdate} 
                 disabled={updating}
-                className="mt-10 bg-indigo-500 py-5 rounded-[30px] shadow-2xl shadow-indigo-500/50"
+                className="mt-8 bg-indigo-500 py-6 rounded-[35px]"
               >
-                {updating ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-center font-black uppercase tracking-widest">Commit Changes</Text>}
+                {updating ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-center font-black uppercase tracking-widest">Sync Changes</Text>}
+              </TouchableOpacity>
+              
+              <TouchableOpacity onPress={() => deleteUser(editingStudent.id)} className="mt-4 py-2">
+                 <Text className="text-red-500/50 text-center font-bold text-xs">Remove Profile Internally</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>

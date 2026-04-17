@@ -47,12 +47,14 @@ export const SupportScreen = ({ navigation }: any) => {
       <SafeAreaView className="flex-1">
         {/* Header */}
         <View className="px-6 py-4 flex-row items-center border-b border-white/5">
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()}
-            className="w-10 h-10 rounded-xl bg-white/5 items-center justify-center border border-white/10"
-          >
-            <Ionicons name="chevron-back" size={24} color="#fff" />
-          </TouchableOpacity>
+          {navigation.canGoBack() && (
+            <TouchableOpacity 
+              onPress={() => navigation.goBack()}
+              className="w-10 h-10 rounded-xl bg-white/5 items-center justify-center border border-white/10"
+            >
+              <Ionicons name="chevron-back" size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
           <View className="ml-4">
             <Text className="text-white text-xl font-black italic tracking-tight">Support</Text>
             <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[3px]">Help Center</Text>

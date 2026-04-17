@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { useNavigation } from '@react-navigation/native';
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Role = 'HOD' | 'TEACHER' | 'STUDENT';
 
@@ -76,7 +76,8 @@ export const RegisterScreen = () => {
          if (photo?.base64) {
             setPhotoBase64(photo.base64);
             if (email) {
-              await SecureStore.setItemAsync(`face_ref_${email.trim()}`, photo.base64);
+              const safeKey = `face_ref_${email.trim().replace(/[^a-zA-Z0-9]/g, '_')}`;
+              await AsyncStorage.setItem(safeKey, photo.base64);
             }
             setShowCamera(false);
          } else {

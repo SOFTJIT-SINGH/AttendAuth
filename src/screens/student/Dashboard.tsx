@@ -21,7 +21,7 @@ export const StudentDashboard = ({ navigation }: any) => {
       if (data) {
         const total = data.filter(r => r.status === 'PRESENT').length;
         const pending = data.filter(r => r.status === 'PENDING_APPROVAL').length;
-        
+
         // Count last 7 days
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
@@ -54,8 +54,10 @@ export const StudentDashboard = ({ navigation }: any) => {
         {/* Profile / Header */}
         <View className="flex-row justify-between items-center mb-10">
           <View>
-            <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[5px] mb-1">Authenticated</Text>
-            <Text className="text-white text-3xl font-black tracking-tight">Student Portal</Text>
+            {/* <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[5px] mb-1">Authenticated</Text> */}
+            <Text className="text-white text-3xl font-black tracking-tight">Student Dashboard</Text>
+            <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[4px] mt-1">{user?.full_name || 'Student'}</Text>
+
           </View>
           <TouchableOpacity onPress={logout} className="w-12 h-12 rounded-[20px] bg-red-500/10 items-center justify-center border border-red-500/20">
             <Ionicons name="power" size={20} color="#ef4444" />
@@ -85,7 +87,7 @@ export const StudentDashboard = ({ navigation }: any) => {
         {/* Navigation Actions */}
         <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[3px] mb-4 px-1">Options</Text>
         <View className="space-y-4 gap-4">
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => navigation.navigate('Mark')}
             activeOpacity={0.9}
             className="bg-white/5 border border-white/10 p-6 rounded-[35px] flex-row items-center"
@@ -100,7 +102,7 @@ export const StudentDashboard = ({ navigation }: any) => {
             <Ionicons name="chevron-forward" size={20} color="#4b5563" />
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => navigation.navigate('History')}
             activeOpacity={0.9}
             className="bg-white/5 border border-white/10 p-6 rounded-[35px] flex-row items-center"

@@ -49,22 +49,42 @@ export const TeacherReports = () => {
   }, [activeTab]);
 
   const updateStatus = async (id: string, newStatus: string) => {
-    const { error } = await supabase
-      .from('attendance_logs')
-      .update({ status: newStatus })
-      .eq('id', id);
-    
-    if (error) {
-       Alert.alert('Update Failed', error.message);
-    } else {
-       fetchRecords();
+    try {
+      const { error } = await supabase
+        .from('attendance_logs')
+        .update({ status: newStatus })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      Alert.alert('Status Updated', `Log has been moved to ${newStatus.toLowerCase()} records.`);
+      fetchRecords();
+    } catch (e: any) {
+       Alert.alert('Modification Failed', e.message);
     }
+  };
+
+  const deleteRecord = async (id: string) => {
+    Alert.alert('Erase Audit Log', 'This action will permanently delete this attendance record from the database. Proceed?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Erase', style: 'destructive', onPress: async () => {
+        const { error } = await supabase.from('attendance_logs').delete().eq('id', id);
+        if (error) Alert.alert('Deletion Failed', error.message);
+        else {
+          Alert.alert('Log Erased', 'The attendance record has been wiped.');
+          fetchRecords();
+        }
+      }}
+    ]);
   };
 
   const renderItem = ({ item }: { item: any }) => {
     const confidence = item.ai_confidence != null ? Math.round(item.ai_confidence) : null;
     const confColor = confidence == null ? '#94a3b8' : confidence >= 80 ? '#10b981' : confidence >= 60 ? '#f59e0b' : '#ef4444';
-    
+    const distance = item.distance_km != null ? item.distance_km : null;
+    const distanceText = distance != null ? (distance < 1 ? `${(distance * 1000).toFixed(0)}m` : `${distance.toFixed(2)}km`) : 'N/A';
+    const isOutRange = distance != null && distance > 0.6; // 600m threshold
+
     return (
       <View className="bg-white/5 rounded-[35px] p-6 mb-4 border border-white/10">
         <View className="flex-row items-center mb-6">
@@ -78,52 +98,68 @@ export const TeacherReports = () => {
               {item.profiles?.full_name || item.profiles?.email}
             </Text>
             <Text className="text-gray-500 text-[10px] uppercase font-black tracking-widest mt-1">
-              {item.class_schedules?.subject || 'General Session'}
+              {item.class_schedules?.subject || 'Direct Entry'}
             </Text>
           </View>
           <View className="items-end">
             <View className={`px-2 py-1 rounded-lg ${item.status === 'PRESENT' ? 'bg-emerald-500/10 border border-emerald-500/20' : item.status === 'ABSENT' ? 'bg-red-500/10 border border-red-500/20' : 'bg-amber-500/10 border border-amber-500/20'}`}>
               <Text className={`text-[8px] font-black uppercase ${item.status === 'PRESENT' ? 'text-emerald-500' : item.status === 'ABSENT' ? 'text-red-500' : 'text-amber-500'}`}>
-                {item.status.replace('_', ' ')}
+                {item.status ? String(item.status).replace('_', ' ') : 'UNKNOWN'}
               </Text>
             </View>
             <Text className="text-gray-600 text-[8px] font-bold mt-2">{new Date(item.marked_at).toLocaleTimeString()}</Text>
           </View>
         </View>
 
+        {/* Audit Data Panel */}
+        <View className="flex-row gap-2 mb-6">
+           <View className="flex-1 bg-white/5 p-3 rounded-2xl border border-white/5">
+              <Text className="text-gray-600 text-[8px] font-black uppercase tracking-widest mb-1 text-center">Identity Match</Text>
+              <Text style={{ color: confColor }} className="text-sm font-black text-center">{confidence || 0}%</Text>
+           </View>
+           <View className={`flex-1 ${isOutRange ? 'bg-red-500/10 border-red-500/20' : 'bg-white/5 border-white/5'} p-3 rounded-2xl border`}>
+              <Text className="text-gray-600 text-[8px] font-black uppercase tracking-widest mb-1 text-center">Distance Log</Text>
+              <Text className={`${isOutRange ? 'text-red-500' : 'text-white'} text-sm font-black text-center`}>{distanceText}</Text>
+           </View>
+        </View>
+
         {confidence !== null && (
-          <View className="mb-6">
-            <View className="flex-row justify-between items-center mb-2">
-              <Text className="text-gray-500 text-[9px] font-black uppercase tracking-widest">Biometric Match</Text>
-              <Text style={{ color: confColor }} className="text-[10px] font-black">{confidence}%</Text>
-            </View>
-            <View className="h-1 bg-white/5 rounded-full overflow-hidden">
-               <View className="h-full rounded-full" style={{ width: `${confidence}%`, backgroundColor: confColor }} />
-            </View>
+          <View className="h-1 bg-white/5 rounded-full overflow-hidden mb-8">
+              <View className="h-full rounded-full" style={{ width: `${confidence}%`, backgroundColor: confColor }} />
           </View>
         )}
 
-        <View className="flex-row gap-2">
+        {/* Dynamic Controls */}
+        <View className="flex-row gap-2 mt-4">
            {item.status !== 'PRESENT' && (
              <TouchableOpacity 
                onPress={() => updateStatus(item.id, 'PRESENT')}
-               className="flex-1 bg-emerald-500 py-3 rounded-2xl items-center justify-center"
+               className="flex-1 py-3 rounded-xl items-center justify-center bg-emerald-500/10 border border-emerald-500/20"
              >
-               <Text className="text-white font-black text-[10px] uppercase tracking-widest">Mark Present</Text>
+               <Text className="text-emerald-500 font-black text-[10px] uppercase tracking-widest">Mark Present</Text>
              </TouchableOpacity>
            )}
+           
            {item.status !== 'ABSENT' && (
              <TouchableOpacity 
                onPress={() => updateStatus(item.id, 'ABSENT')}
-               className="flex-1 bg-red-500/10 border border-red-500/20 py-3 rounded-2xl items-center justify-center"
+               className="flex-1 py-3 rounded-xl items-center justify-center bg-amber-500/10 border border-amber-500/20"
              >
-               <Text className="text-red-500 font-black text-[10px] uppercase tracking-widest">Mark Absent</Text>
+               <Text className="text-amber-500 font-black text-[10px] uppercase tracking-widest">Mark Absent</Text>
              </TouchableOpacity>
            )}
+
+           <TouchableOpacity 
+             onPress={() => deleteRecord(item.id)}
+             className="w-12 py-3 rounded-xl items-center justify-center bg-red-500/10 border border-red-500/20"
+           >
+             <Ionicons name="trash-outline" size={16} color="#ef4444" />
+           </TouchableOpacity>
         </View>
       </View>
     );
   };
+
 
   return (
     <View className="flex-1 bg-[#020617]">
@@ -132,12 +168,14 @@ export const TeacherReports = () => {
       <View className="px-6 pt-16 pb-6">
         <View className="flex-row justify-between items-center mb-8">
           <View className="flex-row items-center">
-            <TouchableOpacity 
-              onPress={() => navigation.goBack()}
-              className="w-10 h-10 rounded-xl bg-white/5 items-center justify-center border border-white/10 mr-4"
-            >
-              <Ionicons name="chevron-back" size={20} color="#fff" />
-            </TouchableOpacity>
+            {navigation.canGoBack() && (
+              <TouchableOpacity 
+                onPress={() => navigation.goBack()}
+                className="w-10 h-10 rounded-xl bg-white/5 items-center justify-center border border-white/10 mr-4"
+              >
+                <Ionicons name="chevron-back" size={20} color="#fff" />
+              </TouchableOpacity>
+            )}
             <View>
               <Text className="text-white text-3xl font-black italic tracking-tighter uppercase">Registry</Text>
               <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[4px] mt-1">Attendance Audit</Text>

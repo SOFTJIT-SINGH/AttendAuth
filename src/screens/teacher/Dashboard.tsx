@@ -30,7 +30,7 @@ export const TeacherDashboard = ({ navigation }: any) => {
   }, [navigation]);
 
   const ACTIONS = [
-    { label: 'Pending Approvals', screen: 'Reports', icon: 'hourglass-outline', colors: ['#f59e0b', '#d97706'], count: stats.pending },
+    { label: 'Pending Approvals', screen: 'Registry', icon: 'hourglass-outline', colors: ['#f59e0b', '#d97706'], count: stats.pending },
     { label: 'Manage Classes', screen: 'ManageClasses', icon: 'calendar-outline', colors: ['#06b6d4', '#0891b2'], count: stats.classes },
     { label: 'Manage Students', screen: 'ManageStudents', icon: 'people-outline', colors: ['#6366f1', '#4f46e5'], count: null },
   ];
@@ -44,8 +44,10 @@ export const TeacherDashboard = ({ navigation }: any) => {
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} className="px-6 pt-16">
         <View className="flex-row justify-between items-center mb-10">
           <View>
-            <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[5px] mb-1">Administrative</Text>
-            <Text className="text-white text-3xl font-black tracking-tight">Teacher Console</Text>
+            {/* <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[5px] mb-1">Administrative</Text> */}
+            <Text className="text-white text-3xl font-black tracking-tight">Teacher Dashboard</Text>
+            <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[4px] mt-1">{user?.full_name || 'Teacher'}</Text>
+
           </View>
           <TouchableOpacity onPress={logout} className="w-12 h-12 rounded-[20px] bg-red-500/10 items-center justify-center border border-red-500/20">
             <Ionicons name="power" size={20} color="#ef4444" />
@@ -55,7 +57,7 @@ export const TeacherDashboard = ({ navigation }: any) => {
         <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[3px] mb-4 px-1">Management Suite</Text>
         <View className="space-y-4 gap-4">
           {ACTIONS.map((action, index) => (
-            <TouchableOpacity 
+            <TouchableOpacity
               key={index}
               onPress={() => navigation.navigate(action.screen)}
               activeOpacity={0.9}
@@ -82,7 +84,7 @@ export const TeacherDashboard = ({ navigation }: any) => {
           <View className="bg-amber-500/10 p-3 rounded-2xl mr-4">
             <Ionicons name="bulb-outline" size={20} color="#f59e0b" />
           </View>
-          <Text className="text-gray-400 text-xs flex-1 font-medium leading-5">You can now create and manage your own class sessions directly from the console.</Text>
+          <Text className="text-gray-400 text-xs flex-1 font-medium leading-5">You can now create and manage your own class sessions directly from the Dashboard.</Text>
         </View>
       </ScrollView>
     </View>
