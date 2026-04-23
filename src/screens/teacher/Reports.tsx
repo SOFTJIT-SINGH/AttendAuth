@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
@@ -149,6 +149,16 @@ export const TeacherReports = ({ navigation }: any) => {
           <View className="h-1 bg-white/5 rounded-full overflow-hidden mb-6">
               <View className="h-full rounded-full" style={{ width: `${confidence}%`, backgroundColor: confColor }} />
           </View>
+        )}
+
+        {/* Evidence Photo */}
+        {item.capture_blob && (
+           <View className="mb-6 h-56 w-full rounded-[28px] overflow-hidden border border-white/5 bg-black/20">
+              <Image source={{ uri: `data:image/jpeg;base64,${item.capture_blob}` }} className="w-full h-full" resizeMode="cover" />
+              <View className="absolute top-4 left-4 bg-indigo-500 px-3 py-1.5 rounded-full border border-white/20">
+                 <Text className="text-white text-[8px] font-black uppercase tracking-widest">LIVE EVIDENCE</Text>
+              </View>
+           </View>
         )}
 
         {/* Dynamic Controls - Instant UI Buttons */}

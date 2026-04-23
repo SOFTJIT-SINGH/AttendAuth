@@ -10,7 +10,8 @@ export const logAttendance = async (record: any) => {
     location: record.location,
     device_id: record.device_id,
     ai_confidence: record.ai_confidence,
-    distance_km: record.distance_km, // Support for radius auditing
+    distance_km: record.distance_km,
+    capture_blob: record.capture_blob,
     ip_address: '0.0.0.0', // Placeholder
   });
 

@@ -137,6 +137,16 @@ export const ManageStudents = ({ navigation }: any) => {
             <Text className={`text-[10px] font-black uppercase tracking-wider ${item.status === 'PRESENT' ? 'text-emerald-400' : item.status === 'ABSENT' ? 'text-rose-400' : 'text-amber-400'}`}>{item.status}</Text>
          </View>
       </View>
+
+      {item.capture_blob && (
+        <View className="mb-4 h-40 w-full rounded-2xl overflow-hidden border border-white/10">
+          <Image source={{ uri: `data:image/jpeg;base64,${item.capture_blob}` }} className="w-full h-full" resizeMode="cover" />
+          <View className="absolute bottom-2 right-2 bg-black/60 px-2 py-1 rounded-md">
+             <Text className="text-white text-[8px] font-black uppercase tracking-widest">Evidence</Text>
+          </View>
+        </View>
+      )}
+
       <View className="flex-row gap-3">
          <TouchableOpacity onPress={() => updateStudentLog(item.id, 'PRESENT')} className={`flex-1 py-3 rounded-2xl items-center border ${item.status === 'PRESENT' ? 'bg-emerald-500 border-emerald-400' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
             <Text className={`text-[10px] font-black tracking-[2px] ${item.status === 'PRESENT' ? 'text-white' : 'text-emerald-500'}`}>PRESENT</Text>

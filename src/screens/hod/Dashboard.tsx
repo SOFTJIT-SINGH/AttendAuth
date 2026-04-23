@@ -53,9 +53,9 @@ export const HoDDashboard = ({ navigation }: any) => {
   ];
 
   const ADMIN_ACTIONS = [
-    { label: 'Identity Center', screen: 'ManageStudents', icon: 'finger-print-outline', colors: ['#6366f1', '#4f46e5'], desc: 'Manage Students & Roles' },
-    { label: 'Staff Registry', screen: 'ManageStaff', icon: 'people-outline', colors: ['#f59e0b', '#d97706'], desc: 'Faculty Verification' },
-    { label: 'Class Scheduler', screen: 'ManageClasses', icon: 'calendar-outline', colors: ['#0ea5e9', '#0284c7'], desc: 'Global Sessions List' },
+    { label: 'Identity Center', screen: 'ManageStudents', icon: 'finger-print-outline', colors: ['#6366f1', '#4f46e5'] as const, desc: 'Manage Students & Roles' },
+    { label: 'Staff Registry', screen: 'ManageStaff', icon: 'people-outline', colors: ['#f59e0b', '#d97706'] as const, desc: 'Faculty Verification' },
+    { label: 'Class Scheduler', screen: 'ManageClasses', icon: 'calendar-outline', colors: ['#0ea5e9', '#0284c7'] as const, desc: 'Global Sessions List' },
   ];
 
   const initials = user?.full_name?.split(' ').map(n => n[0]).join('') || 'HO';

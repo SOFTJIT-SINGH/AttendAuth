@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../services/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { useNavigation } from '@react-navigation/native';
@@ -71,10 +72,10 @@ export const OtpScreen = ({ route }: any) => {
     setLoading(true);
     
     try {
-      console.log('Verifying OTP for:', email.trim());
+      console.log('Verifying OTP for:', email.trim().toLowerCase());
       // Try Signup first (Standard)
       let { data, error } = await supabase.auth.verifyOtp({ 
-        email: email.trim(), 
+        email: email.trim().toLowerCase(), 
         token: cleanToken, 
         type: 'signup' 
       });
@@ -110,6 +111,19 @@ export const OtpScreen = ({ route }: any) => {
 
       if (data.user) {
         console.log('Verification successful');
+        
+        try {
+          const safeKey = `face_ref_${email.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '_')}`;
+          const savedPhoto = await AsyncStorage.getItem(safeKey);
+          if (savedPhoto) {
+            console.log('Syncing face data to profile...');
+            await supabase.from('profiles').update({ face_ref_blob: savedPhoto }).eq('id', data.user.id);
+            await AsyncStorage.removeItem(safeKey);
+          }
+        } catch (err) {
+          console.error('Failed to sync face blob:', err);
+        }
+
         await fetchAndSetProfile(data.user.id);
       } else {
         throw new Error('Verification failed. No user returned.');
@@ -134,7 +148,7 @@ export const OtpScreen = ({ route }: any) => {
     try {
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
       });
       if (error) throw error;
       setResendTimer(60);

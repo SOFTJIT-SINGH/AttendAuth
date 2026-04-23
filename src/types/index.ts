@@ -20,6 +20,7 @@ export interface AttendanceRecord {
   location: { lat: number; lon: number };
   device_id: string;
   ai_confidence: number | null;
+  capture_blob: string | null;
 }
 
 export interface ClassSchedule {

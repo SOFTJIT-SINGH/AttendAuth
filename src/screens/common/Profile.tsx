@@ -78,7 +78,7 @@ export const ProfileScreen = () => {
 
         // Save locally for speed
         if (user?.email) {
-          const safeKey = `face_ref_${user.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+          const safeKey = `face_ref_${user.email.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '_')}`;
           await AsyncStorage.setItem(safeKey, photo.base64);
         }
         

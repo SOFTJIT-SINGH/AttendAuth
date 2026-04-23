@@ -2,6 +2,8 @@
 create table if not exists public.profiles (
   id uuid references auth.users on delete cascade primary key,
   email text,
+  full_name text,
+  phone text,
   role text check (role in ('HOD','TEACHER','STUDENT')) default 'STUDENT',
   device_id text,
   is_verified boolean default false,
@@ -36,7 +38,8 @@ create table if not exists public.attendance_logs (
   location jsonb,
   device_id text,
   ai_confidence numeric,
-  ip_address text
+  ip_address text,
+  capture_blob text
 );
 alter table public.attendance_logs enable row level security;
 
@@ -84,12 +87,15 @@ create policy "Staff approve attendance" on public.attendance_logs for update us
 -- ⚙️ TRIPLE SYNC TRIGGER
 create or replace function public.handle_new_user() returns trigger as $$
 begin
-  insert into public.profiles (id, email, role, device_id, is_verified)
+  insert into public.profiles (id, email, full_name, phone, role, device_id, face_ref_blob, is_verified)
   values (
     new.id, 
     new.email, 
+    new.raw_user_meta_data->>'full_name',
+    new.raw_user_meta_data->>'phone',
     new.raw_user_meta_data->>'role', 
     new.raw_user_meta_data->>'device_id',
+    new.raw_user_meta_data->>'face_ref_blob',
     (case when (new.raw_user_meta_data->>'role' = 'HOD') then true else false end)
   );
   return new;

@@ -37,6 +37,7 @@ export const RegisterScreen = () => {
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
+  const [isCameraReady, setIsCameraReady] = useState(false);
   const cameraRef = useRef<CameraView>(null);
 
   const { loadDeviceId } = useAuthStore();
@@ -64,7 +65,7 @@ export const RegisterScreen = () => {
   };
 
   const handleCapture = async () => {
-    if (cameraRef.current && !capturing) {
+    if (cameraRef.current && !capturing && isCameraReady) {
        setCapturing(true);
        try {
          const photo = await cameraRef.current.takePictureAsync({ 
@@ -76,18 +77,20 @@ export const RegisterScreen = () => {
          if (photo?.base64) {
             setPhotoBase64(photo.base64);
             if (email) {
-              const safeKey = `face_ref_${email.trim().replace(/[^a-zA-Z0-9]/g, '_')}`;
+              const safeKey = `face_ref_${email.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '_')}`;
               await AsyncStorage.setItem(safeKey, photo.base64);
             }
             setShowCamera(false);
          } else {
-            Alert.alert('Capture Failed', 'Could not process image. Please try again.');
+            Alert.alert('Capture Failed', 'Sensor returned no data. Please ensure you are in a well-lit area.');
          }
        } catch (err: any) {
-         Alert.alert('Camera Error', err.message);
+         Alert.alert('Camera Error', 'Hardware delay detected. Please wait a second and try again.');
        } finally {
          setCapturing(false);
        }
+    } else if (!isCameraReady) {
+      Alert.alert('Warming Up', 'Camera sensor is initializing. Please wait...');
     }
   };
 
@@ -106,15 +109,14 @@ export const RegisterScreen = () => {
     
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         password,
         options: { 
           data: { 
             role, 
             full_name: fullName.trim(),
             device_id: deviceId, 
-            phone,
-            face_ref_blob: photoBase64 // Store in DB for sync
+            phone
           } 
         },
       });
@@ -123,7 +125,7 @@ export const RegisterScreen = () => {
 
       if (data.user) {
         Alert.alert('Success', 'Verification code sent.');
-        navigation.navigate('Otp', { email: email.trim() });
+        navigation.navigate('Otp', { email: email.trim().toLowerCase() });
       }
     } catch (e: any) {
       Alert.alert('Registration Failed', e.message);
@@ -135,7 +137,12 @@ export const RegisterScreen = () => {
   if (showCamera) {
     return (
       <View className="flex-1 bg-black">
-        <CameraView style={{ flex: 1 }} facing="front" ref={cameraRef} />
+        <CameraView 
+          style={{ flex: 1 }} 
+          facing="front" 
+          ref={cameraRef} 
+          onCameraReady={() => setIsCameraReady(true)}
+        />
         
         {/* Top Controls */}
         <View className="absolute top-12 left-6 right-6 flex-row justify-between items-center">
@@ -232,7 +239,16 @@ export const RegisterScreen = () => {
 
             <View className="bg-white/5 border border-white/10 rounded-[24px] p-5 flex-row items-center">
               <Ionicons name="mail-outline" size={18} color="#64748b" className="mr-4" />
-              <TextInput placeholder="Email" placeholderTextColor="#475569" value={email} onChangeText={setEmail} autoCapitalize="none" style={{ color: '#ffffff' }} className="flex-1 text-sm font-bold" />
+              <TextInput 
+                placeholder="Email" 
+                placeholderTextColor="#475569" 
+                value={email} 
+                onChangeText={(t) => setEmail(t.toLowerCase())} 
+                keyboardType="email-address"
+                autoCapitalize="none" 
+                style={{ color: '#ffffff' }} 
+                className="flex-1 text-base font-bold" 
+              />
             </View>
 
             <View className="bg-white/5 border border-white/10 rounded-[24px] p-5 flex-row items-center">

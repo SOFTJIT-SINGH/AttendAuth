@@ -1,6 +1,6 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Platform } from 'react-native';
+import { View, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { LoginScreen } from '../screens/auth/Login';
@@ -158,10 +158,16 @@ const HoDNavigator = () => (
 
 export const AppNavigator = () => {
   const { user, loading } = useAuthStore();
-  if (loading) return null;
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#020617', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#6366f1" />
+      </View>
+    );
+  }
 
   return (
-    <Root.Navigator screenOptions={{ headerShown: false, animationEnabled: false }}>
+    <Root.Navigator screenOptions={{ headerShown: false, animationEnabled: false as any }}>
       {!user ? (
         <>
           <Root.Screen name="Login" component={LoginScreen} />
@@ -169,7 +175,10 @@ export const AppNavigator = () => {
           <Root.Screen name="Otp" component={OtpScreen} />
         </>
       ) : !user.is_verified ? (
-        <Root.Screen name="Pending" component={PendingVerificationScreen} />
+        <>
+          <Root.Screen name="Pending" component={PendingVerificationScreen} />
+          <Root.Screen name="Support" component={SupportScreen} />
+        </>
       ) : user.role === 'STUDENT' ? (
         <>
           <Root.Screen name="Student" component={StudentTabs} />
@@ -179,11 +188,13 @@ export const AppNavigator = () => {
         <>
           <Root.Screen name="Teacher" component={TeacherNavigator} />
           <Root.Screen name="Support" component={SupportScreen} />
+          <Root.Screen name="Pending" component={PendingVerificationScreen} />
         </>
       ) : (
         <>
           <Root.Screen name="HoD" component={HoDNavigator} />
           <Root.Screen name="Support" component={SupportScreen} />
+          <Root.Screen name="Pending" component={PendingVerificationScreen} />
         </>
       )}
     </Root.Navigator>

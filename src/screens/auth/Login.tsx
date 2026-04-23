@@ -32,19 +32,59 @@ export const LoginScreen = () => {
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ 
-        email: email.trim(), 
-        password 
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
       });
       if (error) throw error;
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, email, full_name, phone, role, is_verified, device_id')
         .eq('id', data.user!.id)
         .single();
 
-      if (profile) setSession(profile as UserProfile);
+      if (profile) {
+        setSession(profile as UserProfile);
+      } else {
+        // DB unreachable or profile missing — build from auth metadata
+        // so the user is not stuck on a blank login screen.
+        const isNetworkError = !profileError?.code || profileError?.message?.includes('Network');
+        if (isNetworkError) {
+          const meta = data.user!.user_metadata || {};
+          const offlineProfile: UserProfile = {
+            id: data.user!.id,
+            email: data.user!.email || email.trim().toLowerCase(),
+            full_name: meta.full_name || 'User',
+            role: (meta.role as UserProfile['role']) || 'STUDENT',
+            is_verified: meta.role === 'HOD' || false,
+            phone: meta.phone || null,
+            device_id: meta.device_id || null,
+            face_ref_blob: null,
+          };
+          Alert.alert(
+            'Database Unreachable',
+            'You are authenticated, but the database is not responding. You can still use the app in limited mode.',
+            [{ text: 'Continue', onPress: () => setSession(offlineProfile) }]
+          );
+        } else if (profileError?.code === 'PGRST116') {
+          // Self-heal: profile row doesn't exist yet
+          const { data: newProfile } = await supabase
+            .from('profiles')
+            .insert({
+              id: data.user!.id,
+              email: data.user!.email,
+              full_name: data.user!.user_metadata?.full_name || 'User',
+              role: data.user!.user_metadata?.role || 'STUDENT',
+              device_id: data.user!.user_metadata?.device_id || 'unknown',
+            })
+            .select('id, email, full_name, phone, role, is_verified, device_id')
+            .single();
+          if (newProfile) setSession(newProfile as UserProfile);
+        } else {
+          Alert.alert('Profile Error', profileError?.message || 'Could not load your profile.');
+        }
+      }
     } catch (e: any) {
       Alert.alert('Login Failed', e.message);
     } finally {
@@ -76,7 +116,7 @@ export const LoginScreen = () => {
                 placeholder="Email Address"
                 placeholderTextColor="#475569"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(t) => setEmail(t.toLowerCase())}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 style={{ color: '#ffffff' }}

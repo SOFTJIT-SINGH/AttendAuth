@@ -11,7 +11,7 @@ interface AuthState {
   setSession: (user: UserProfile | null) => void;
   setLoading: (loading: boolean) => void;
   logout: () => Promise<void>;
-  loadDeviceId: () => Promise<string>;
+  loadDeviceId: () => Promise<string | null>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -23,15 +23,22 @@ export const useAuthStore = create<AuthState>()(
       setLoading: (loading) => set({ loading }),
 
       logout: async () => {
-        await supabase.auth.signOut();
-        set({ user: null, loading: false });
+        try {
+          await supabase.auth.signOut();
+        } catch (e) {
+          console.error('Logout network error ignored:', e);
+        } finally {
+          // Force wipe the broken session from storage
+          await AsyncStorage.clear();
+          set({ user: null, loading: false });
+        }
       },
       loadDeviceId: async () => {
         // We keep Device ID in SecureStore as it's a critical small identifier
         let id = await SecureStore.getItemAsync('DEVICE_ID');
         if (!id) {
           id = (globalThis as any).crypto?.randomUUID?.() || Math.random().toString(36).substring(2);
-          await SecureStore.setItemAsync('DEVICE_ID', id);
+          await SecureStore.setItemAsync('DEVICE_ID', id as string);
         }
         return id;
       },

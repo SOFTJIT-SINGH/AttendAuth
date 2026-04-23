@@ -9,14 +9,19 @@ export const StudentDashboard = ({ navigation }: any) => {
   const { user, logout } = useAuthStore();
   const [stats, setStats] = useState({ total: 0, pending: 0, lastWeek: 0 });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchStats = async () => {
     if (!user) return;
+    setLoading(true);
+    setError(null);
     try {
-      const { data, error } = await supabase
+      const { data, error: sbError } = await supabase
         .from('attendance_logs')
         .select('status, marked_at')
         .eq('student_id', user.id);
+
+      if (sbError) throw sbError;
 
       if (data) {
         const total = data.filter(r => r.status === 'PRESENT').length;
@@ -29,19 +34,25 @@ export const StudentDashboard = ({ navigation }: any) => {
 
         setStats({ total, pending, lastWeek });
       }
-    } catch (e) {
-      console.error('Stats Error:', e);
+    } catch (e: any) {
+      console.error('Stats Error:', JSON.stringify(e, null, 2), e.message);
+      setError(e.message?.includes('Network') ? 'Network connection unstable' : (e.message || 'Unknown database error'));
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStats();
-    // Refresh when screen is focused would be better, but standard useEffect handles mount.
-    const unsubscribe = navigation.addListener('focus', fetchStats);
+    if (user) {
+      fetchStats();
+    } else {
+      setLoading(false);
+    }
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (user) fetchStats();
+    });
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, user?.id]);
 
   return (
     <View className="flex-1 bg-[#020617]">
@@ -52,20 +63,50 @@ export const StudentDashboard = ({ navigation }: any) => {
 
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} className="px-6 pt-16" showsVerticalScrollIndicator={false}>
         {/* Profile / Header */}
-        <View className="flex-row justify-between items-center mb-10">
+        <View className="flex-row justify-between items-center mb-6">
           <View>
-            {/* <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[5px] mb-1">Authenticated</Text> */}
-            <Text className="text-white text-3xl font-black tracking-tight">Student Dashboard</Text>
+            <Text className="text-white text-3xl font-black tracking-tight">Dashboard</Text>
             <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[4px] mt-1">{user?.full_name || 'Student'}</Text>
-
           </View>
           <TouchableOpacity onPress={logout} className="w-12 h-12 rounded-[20px] bg-red-500/10 items-center justify-center border border-red-500/20">
             <Ionicons name="power" size={20} color="#ef4444" />
           </TouchableOpacity>
         </View>
 
+        {!user?.is_verified && (
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('Pending')}
+            className="mb-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-[25px] flex-row items-center"
+          >
+            <View className="w-10 h-10 bg-amber-500/20 rounded-xl items-center justify-center">
+              <Ionicons name="time-outline" size={20} color="#f59e0b" />
+            </View>
+            <View className="ml-4 flex-1">
+              <Text className="text-amber-500 text-xs font-black uppercase tracking-widest">Verification Pending</Text>
+              <Text className="text-amber-500/60 text-[9px] font-medium mt-0.5">Your profile is being audited by authorities.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color="#f59e0b" className="opacity-50" />
+          </TouchableOpacity>
+        )}
+
         {/* Dynamic Stats Cards */}
-        <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[3px] mb-4 px-1">My Progress</Text>
+        <View className="flex-row justify-between items-center mb-4 px-1">
+          <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[3px]">My Progress</Text>
+          {error && (
+            <TouchableOpacity onPress={fetchStats} className="flex-row items-center">
+              <Ionicons name="refresh-outline" size={12} color="#6366f1" />
+              <Text className="text-indigo-500 text-[8px] font-black uppercase ml-1">Retry Sync</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {error && (
+          <View className="mb-6 mx-1 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex-row items-center">
+            <Ionicons name="warning-outline" size={16} color="#ef4444" />
+            <Text className="text-red-400 text-[10px] font-bold ml-3 flex-1">{error}</Text>
+          </View>
+        )}
+
         <View className="flex-row space-x-3 gap-3 mb-10">
           <View className="flex-1 bg-white/5 border border-white/10 rounded-[30px] p-5">
             <Text className="text-gray-500 text-[9px] font-black uppercase tracking-widest mb-2">Total</Text>
