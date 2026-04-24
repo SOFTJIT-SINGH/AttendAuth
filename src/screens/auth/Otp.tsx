@@ -111,19 +111,6 @@ export const OtpScreen = ({ route }: any) => {
 
       if (data.user) {
         console.log('Verification successful');
-        
-        try {
-          const safeKey = `face_ref_${email.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '_')}`;
-          const savedPhoto = await AsyncStorage.getItem(safeKey);
-          if (savedPhoto) {
-            console.log('Syncing face data to profile...');
-            await supabase.from('profiles').update({ face_ref_blob: savedPhoto }).eq('id', data.user.id);
-            await AsyncStorage.removeItem(safeKey);
-          }
-        } catch (err) {
-          console.error('Failed to sync face blob:', err);
-        }
-
         await fetchAndSetProfile(data.user.id);
       } else {
         throw new Error('Verification failed. No user returned.');

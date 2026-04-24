@@ -13,43 +13,78 @@ export default function App() {
   const { setSession, setLoading } = useAuthStore();
 
   useEffect(() => {
-    // 1. Listen for auth changes
+    const initializeAuth = async () => {
+      try {
+        setLoading(true);
+        // 1. Explicitly check session on startup to catch corrupted state
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('[Auth Init] Session error:', error.message);
+          // If token is missing/invalid, force a clean state
+          if (error.message.includes('Refresh Token') || error.message.includes('invalid')) {
+            await supabase.auth.signOut();
+            setSession(null);
+          }
+        } else if (session?.user) {
+          await handleUserSync(session);
+        } else {
+          setSession(null);
+        }
+      } catch (err) {
+        console.error('[Auth Init] Critical error:', err);
+        setSession(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const handleUserSync = async (session: any) => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (data) {
+          setSession(data as any);
+        } else {
+          const meta = session.user.user_metadata || {};
+          setSession({
+            id: session.user.id,
+            email: session.user.email || '',
+            full_name: meta.full_name || 'User',
+            role: meta.role || 'STUDENT',
+            is_verified: meta.role === 'HOD' || false,
+            phone: meta.phone || null,
+            device_id: meta.device_id || null,
+            face_ref_blob: null,
+          } as any);
+        }
+      } catch (e) {
+        console.warn('[Sync] Profile fetch failed:', e);
+      }
+    };
+
+    initializeAuth();
+
+    // 2. Listen for auth changes (SIGN_IN, SIGN_OUT, TOKEN_REFRESHED)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[Auth] Event:', event);
       
+      if (event === 'SIGNED_OUT') {
+        setSession(null);
+        setLoading(false);
+        return;
+      }
+
       if (session?.user) {
         setLoading(true);
-        try {
-          // Attempt to fetch profile details
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          if (data) {
-            setSession(data as any);
-          } else {
-            // Fallback to session metadata if DB is unreachable
-            const meta = session.user.user_metadata || {};
-            setSession({
-              id: session.user.id,
-              email: session.user.email || '',
-              full_name: meta.full_name || 'User',
-              role: meta.role || 'STUDENT',
-              is_verified: meta.role === 'HOD' || false, // Do not auto-verify students
-              phone: meta.phone || null,
-              device_id: meta.device_id || null,
-              face_ref_blob: null,
-            } as any);
-          }
-        } catch (e) {
-          console.warn('[Sync] Profile fetch failed, using minimal session.');
-          setLoading(false);
-        } finally {
-          setLoading(false);
-        }
-      } else {
+        await handleUserSync(session);
+        setLoading(false);
+      } else if (event !== 'INITIAL_SESSION') { 
+        // Avoid double-clearing during initializeAuth
         setSession(null);
         setLoading(false);
       }

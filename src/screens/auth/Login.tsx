@@ -105,8 +105,8 @@ export const LoginScreen = () => {
             <View className="w-20 h-20 bg-white/5 border border-white/10 rounded-[28px] items-center justify-center shadow-xl">
                <Ionicons name="finger-print" size={42} color="#fff" />
             </View>
-            <Text className="text-white text-4xl font-black tracking-tight mt-6 italic">Secure Entry</Text>
-            <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[5px] mt-2">AttendAuth Logic</Text>
+            <Text className="text-white text-4xl font-black tracking-tight mt-6 italic">AttendAuth</Text>
+            <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[5px] mt-2">AttendAuth Login</Text>
           </View>
 
           <View className="space-y-4 gap-4">
@@ -132,11 +132,20 @@ export const LoginScreen = () => {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
                 style={{ color: '#ffffff' }}
                 className="flex-1 text-base font-bold"
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={18} color="#475569" />
+              <TouchableOpacity 
+                onPress={() => setShowPassword(!showPassword)}
+                style={{ padding: 10, marginRight: -10 }}
+              >
+                <Ionicons 
+                  name={showPassword ? 'eye-outline' : 'eye-off-outline'} 
+                  size={20} 
+                  color={showPassword ? '#6366f1' : '#475569'} 
+                />
               </TouchableOpacity>
             </View>
 

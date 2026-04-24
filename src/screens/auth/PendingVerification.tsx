@@ -57,7 +57,7 @@ export const PendingVerificationScreen = () => {
         <View className="h-1 w-12 bg-indigo-500 rounded-full my-6" />
         
         <Text className="text-gray-400 text-base text-center leading-7 px-4">
-          Greetings, <Text className="text-white font-bold">{user?.full_name || user?.email?.split('@')[0]}</Text>. Your credentials have been received and are currently being audited by the departmental authorities.
+          Greetings, <Text className="text-white font-bold">{user?.full_name}</Text>. Your credentials have been received and are currently being audited by the departmental authorities.
         </Text>
 
         <View className="bg-white/5 border border-white/10 rounded-3xl p-6 w-full mt-10">

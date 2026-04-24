@@ -88,7 +88,7 @@ export const ManageStaff = ({ navigation }: any) => {
           <Ionicons name="chevron-back" size={24} color="#fff" />
         </TouchableOpacity>
         <View className="items-center">
-          <Text className="text-white text-xl font-black italic tracking-tight">Staff Registry</Text>
+          <Text className="text-white text-xl font-black italic tracking-tight">Staff</Text>
           <Text className="text-gray-500 text-[10px] font-black uppercase tracking-[3px]">HOD Console</Text>
         </View>
         <TouchableOpacity onPress={fetchTeachers} className="w-12 h-12 rounded-2xl bg-white/5 items-center justify-center border border-white/10">

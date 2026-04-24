@@ -36,9 +36,9 @@ export const TeacherDashboard = ({ navigation }: any) => {
   }, [navigation, user?.id]);
 
   const ACTIONS = [
-    { label: 'Pending Approvals', screen: 'Registry', icon: 'hourglass-outline', colors: ['#f59e0b', '#d97706'] as const, count: stats.pending },
+    { label: 'Attendance Approvals', screen: 'Registry', icon: 'hourglass-outline', colors: ['#f59e0b', '#d97706'] as const, count: stats.pending },
     { label: 'Full Attendance Logs', screen: 'History', icon: 'documents-outline', colors: ['#8b5cf6', '#6d28d9'] as const, count: null },
-    { label: 'Manage Classes', screen: 'ManageClasses', icon: 'calendar-outline', colors: ['#06b6d4', '#0891b2'] as const, count: stats.classes },
+    { label: 'Create Classes', screen: 'ManageClasses', icon: 'calendar-outline', colors: ['#06b6d4', '#0891b2'] as const, count: stats.classes },
     { label: 'Manage Students', screen: 'ManageStudents', icon: 'people-outline', colors: ['#6366f1', '#4f46e5'] as const, count: null },
   ];
 
